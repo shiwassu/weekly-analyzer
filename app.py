@@ -924,9 +924,43 @@ def main():
                 return
     
     if original_df is not None:
-        # 显示原始数据
-        with st.expander("📋 原始数据预览", expanded=False):
-            st.dataframe(original_df, use_container_width=True)
+        # 显示原始数据和快速计算工具
+        data_col, calc_col = st.columns([3, 1])
+        
+        with data_col:
+            with st.expander("📋 原始数据预览", expanded=False):
+                st.dataframe(original_df, use_container_width=True)
+        
+        with calc_col:
+            with st.expander("🧮 快速计算", expanded=True):
+                # 获取数值列
+                numeric_cols = original_df.select_dtypes(include=['number']).columns.tolist()
+                
+                if numeric_cols:
+                    st.markdown("**选择列计算**")
+                    
+                    # 组A选择
+                    col_a = st.selectbox("🟢 组A列", [""] + numeric_cols, key="quick_col_a")
+                    if col_a:
+                        vals_a = original_df[col_a].dropna().tolist()
+                        if vals_a:
+                            st.success(f"**{len(vals_a)}个值**\n和:{sum(vals_a):,.0f}\n均:{sum(vals_a)/len(vals_a):,.1f}")
+                    
+                    # 组B选择
+                    col_b = st.selectbox("🟠 组B列", [""] + numeric_cols, key="quick_col_b")
+                    if col_b:
+                        vals_b = original_df[col_b].dropna().tolist()
+                        if vals_b:
+                            st.warning(f"**{len(vals_b)}个值**\n和:{sum(vals_b):,.0f}\n均:{sum(vals_b)/len(vals_b):,.1f}")
+                    
+                    # 对比
+                    if col_a and col_b and vals_a and vals_b:
+                        sum_a, sum_b = sum(vals_a), sum(vals_b)
+                        diff = sum_b - sum_a
+                        pct = (diff / abs(sum_a) * 100) if sum_a != 0 else 0
+                        st.info(f"**对比B-A**\n差:{diff:+,.0f}\n率:{pct:+.1f}%")
+                else:
+                    st.info("无数值列")
         
         # 数据清洗
         cleaned_df = clean_data(original_df)
