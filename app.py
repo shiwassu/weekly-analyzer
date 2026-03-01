@@ -750,20 +750,111 @@ def main():
     
     # 报表系统快捷入口
     with st.expander("🔗 报表系统快捷入口", expanded=False):
-        st.markdown("""
-        **使用方法：**
-        1. 点击下方链接打开报表系统
-        2. 在报表系统中选择并复制数据（Ctrl+C）
-        3. 回到本页面，选择"粘贴数据"方式导入
-        """)
         col1, col2 = st.columns(2)
         with col1:
             st.link_button("🚀 打开 Infoc 报表系统", "http://base.cmcm.com:8080/", use_container_width=True)
         with col2:
-            # 可以添加更多报表系统链接
             custom_url = st.text_input("自定义报表地址", placeholder="输入其他报表系统URL")
             if custom_url:
                 st.link_button("打开自定义地址", custom_url, use_container_width=True)
+    
+    # 快速计算工具
+    with st.expander("🧮 快速计算工具（双组对比）", expanded=False):
+        st.markdown("**从报表复制数据，粘贴到下方进行快速计算和对比**")
+        
+        col_a, col_b = st.columns(2)
+        
+        with col_a:
+            st.markdown("##### 🟢 组A")
+            input_a = st.text_area("粘贴组A数据", height=100, key="calc_input_a", 
+                                   placeholder="从报表复制一列数据粘贴到这里...")
+        
+        with col_b:
+            st.markdown("##### 🟠 组B")
+            input_b = st.text_area("粘贴组B数据", height=100, key="calc_input_b",
+                                   placeholder="从报表复制另一列数据粘贴到这里...")
+        
+        def parse_numbers(text):
+            """从文本中提取所有数字"""
+            import re
+            if not text:
+                return []
+            # 匹配数字（包括带逗号的）
+            matches = re.findall(r'-?[\d,]+\.?\d*', text)
+            nums = []
+            for m in matches:
+                try:
+                    n = float(m.replace(',', ''))
+                    if n != 0:  # 忽略0
+                        nums.append(n)
+                except:
+                    pass
+            return nums
+        
+        def calc_stats(nums):
+            """计算统计信息"""
+            if not nums:
+                return None
+            import numpy as np
+            return {
+                'count': len(nums),
+                'sum': sum(nums),
+                'avg': sum(nums) / len(nums),
+                'max': max(nums),
+                'min': min(nums),
+                'median': float(np.median(nums))
+            }
+        
+        nums_a = parse_numbers(input_a)
+        nums_b = parse_numbers(input_b)
+        stats_a = calc_stats(nums_a)
+        stats_b = calc_stats(nums_b)
+        
+        # 显示结果
+        result_col_a, result_col_b = st.columns(2)
+        
+        with result_col_a:
+            if stats_a:
+                st.success(f"""
+                **组A ({stats_a['count']}个数值)**
+                - ➕ 求和: **{stats_a['sum']:,.2f}**
+                - 📊 均值: **{stats_a['avg']:,.2f}**
+                - ⬆️ 最大: **{stats_a['max']:,.2f}**
+                - ⬇️ 最小: **{stats_a['min']:,.2f}**
+                - 📍 中位数: **{stats_a['median']:,.2f}**
+                """)
+            else:
+                st.info("组A: 未输入数据")
+        
+        with result_col_b:
+            if stats_b:
+                st.warning(f"""
+                **组B ({stats_b['count']}个数值)**
+                - ➕ 求和: **{stats_b['sum']:,.2f}**
+                - 📊 均值: **{stats_b['avg']:,.2f}**
+                - ⬆️ 最大: **{stats_b['max']:,.2f}**
+                - ⬇️ 最小: **{stats_b['min']:,.2f}**
+                - 📍 中位数: **{stats_b['median']:,.2f}**
+                """)
+            else:
+                st.info("组B: 未输入数据")
+        
+        # 对比分析
+        if stats_a and stats_b:
+            sum_diff = stats_b['sum'] - stats_a['sum']
+            sum_pct = (sum_diff / abs(stats_a['sum']) * 100) if stats_a['sum'] != 0 else 0
+            avg_diff = stats_b['avg'] - stats_a['avg']
+            avg_pct = (avg_diff / abs(stats_a['avg']) * 100) if stats_a['avg'] != 0 else 0
+            
+            st.markdown("---")
+            st.markdown("### 📊 对比分析 (B vs A)")
+            
+            comp_col1, comp_col2 = st.columns(2)
+            with comp_col1:
+                color = "green" if sum_diff >= 0 else "red"
+                st.metric("求和差值", f"{sum_diff:+,.2f}", f"{sum_pct:+.2f}%")
+            with comp_col2:
+                st.metric("均值差值", f"{avg_diff:+,.2f}", f"{avg_pct:+.2f}%")
     
     # 数据导入方式选择
     data_source = st.radio(
