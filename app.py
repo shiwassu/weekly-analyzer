@@ -924,40 +924,59 @@ def main():
                 return
     
     if original_df is not None:
+        # 侧边栏悬浮计算面板
+        with st.sidebar:
+            st.markdown("## 🧮 快速计算")
+            st.markdown("从下方表格复制数据粘贴到这里")
+            
+            input_a = st.text_area("🟢 组A数据", height=80, key="sidebar_input_a", 
+                                   placeholder="粘贴数据...")
+            input_b = st.text_area("🟠 组B数据", height=80, key="sidebar_input_b",
+                                   placeholder="粘贴数据...")
+            
+            def parse_nums(text):
+                import re
+                if not text: return []
+                matches = re.findall(r'-?[\d,]+\.?\d*', text)
+                return [float(m.replace(',','')) for m in matches if m and float(m.replace(',','')) != 0]
+            
+            def show_stats(nums, name):
+                if not nums:
+                    return None
+                import numpy as np
+                s = sum(nums)
+                return {
+                    'count': len(nums), 'sum': s, 'avg': s/len(nums),
+                    'max': max(nums), 'min': min(nums), 'median': float(np.median(nums))
+                }
+            
+            nums_a = parse_nums(input_a)
+            nums_b = parse_nums(input_b)
+            stats_a = show_stats(nums_a, "A")
+            stats_b = show_stats(nums_b, "B")
+            
+            if stats_a:
+                st.success(f"""**🟢 组A ({stats_a['count']}个)**
+➕ 和: {stats_a['sum']:,.2f}
+📊 均: {stats_a['avg']:,.2f}
+⬆️ 大: {stats_a['max']:,.0f} ⬇️ 小: {stats_a['min']:,.0f}""")
+            
+            if stats_b:
+                st.warning(f"""**🟠 组B ({stats_b['count']}个)**
+➕ 和: {stats_b['sum']:,.2f}
+📊 均: {stats_b['avg']:,.2f}
+⬆️ 大: {stats_b['max']:,.0f} ⬇️ 小: {stats_b['min']:,.0f}""")
+            
+            if stats_a and stats_b:
+                diff = stats_b['sum'] - stats_a['sum']
+                pct = (diff / abs(stats_a['sum']) * 100) if stats_a['sum'] else 0
+                st.info(f"""**📊 对比 B-A**
+差值: {diff:+,.2f}
+变化: {pct:+.2f}%""")
+        
         # 原始数据预览
-        with st.expander("� 原始数据预览", expanded=True):
+        with st.expander("📋 原始数据预览", expanded=True):
             st.dataframe(original_df, use_container_width=True)
-            
-            # 书签悬浮计算工具
-            st.markdown("---")
-            st.markdown("**🧮 悬浮计算工具** - 点击下方按钮启用，然后直接点击上方表格单元格选择数据")
-            
-            # 内嵌JavaScript工具按钮
-            calc_tool_js = """
-<script>
-function startCalcTool() {
-    if(window._ct){alert('已启用');return;}
-    window._ct=true;
-    var gA=[],gB=[],cG='A';
-    var st=document.createElement('style');
-    st.textContent='.calc-a{background:#4CAF50 !important;color:#fff !important;}.calc-b{background:#FF9800 !important;color:#fff !important;}';
-    document.head.appendChild(st);
-    var p=document.createElement('div');
-    p.style.cssText='position:fixed;top:80px;right:20px;z-index:2147483647;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:15px;border-radius:10px;font-family:Arial;box-shadow:0 4px 20px rgba(0,0,0,.3);min-width:240px;font-size:13px';
-    p.innerHTML='<b>🧮计算工具</b><div style="display:flex;gap:5px;margin:10px 0"><button id="ba" style="flex:1;padding:6px;border:none;border-radius:4px;cursor:pointer;background:#4CAF50;color:#fff">组A</button><button id="bb" style="flex:1;padding:6px;border:none;border-radius:4px;cursor:pointer;background:rgba(255,152,0,.4);color:#fff">组B</button></div><div id="rs" style="background:rgba(0,0,0,.2);padding:10px;border-radius:6px;margin-bottom:10px;line-height:1.6">点击单元格选择</div><div style="display:flex;gap:5px"><button id="cl" style="flex:1;padding:8px;border:none;border-radius:4px;cursor:pointer;background:rgba(255,255,255,.2);color:#fff">清除</button><button id="cx" style="flex:1;padding:8px;border:none;border-radius:4px;cursor:pointer;background:#e74c3c;color:#fff">关闭</button></div>';
-    document.body.appendChild(p);
-    function pn(t){var n=t.replace(/[,%￥$\\s]/g,'');return /^-?\\d+\\.?\\d*$/.test(n)?parseFloat(n):null}
-    function up(){var h='';if(gA.length){var s=gA.reduce((a,b)=>a+b,0);h+='<div style="color:#98FB98"><b>组A('+gA.length+'):</b> 和='+s.toLocaleString()+' 均='+(s/gA.length).toFixed(1)+'</div>'}else h+='<div style="color:#98FB98"><b>组A:</b>未选</div>';if(gB.length){var s2=gB.reduce((a,b)=>a+b,0);h+='<div style="color:#FFD700"><b>组B('+gB.length+'):</b> 和='+s2.toLocaleString()+' 均='+(s2/gB.length).toFixed(1)+'</div>'}else h+='<div style="color:#FFD700"><b>组B:</b>未选</div>';if(gA.length&&gB.length){var s1=gA.reduce((a,b)=>a+b,0),s2=gB.reduce((a,b)=>a+b,0),d=s2-s1;h+='<div style="border-top:1px solid rgba(255,255,255,.3);padding-top:6px;margin-top:6px"><b>对比:</b> '+(d>=0?'+':'')+d.toLocaleString()+' ('+(d>=0?'+':'')+(d/Math.abs(s1)*100).toFixed(2)+'%)</div>'}document.getElementById('rs').innerHTML=h}
-    document.addEventListener('click',function(e){if(p.contains(e.target))return;var el=e.target;var txt=el.innerText.trim();var v=pn(txt);if(v===null)return;e.preventDefault();e.stopPropagation();var cn=cG=='A'?'calc-a':'calc-b',arr=cG=='A'?gA:gB,other=cG=='A'?gB:gA,ocn=cG=='A'?'calc-b':'calc-a';if(!arr._els)arr._els=[];var i=arr._els.indexOf(el);if(i>-1){el.classList.remove(cn);arr.splice(i,1);arr._els.splice(i,1)}else{el.classList.add(cn);arr.push(v);arr._els.push(el)}up()},true);
-    document.getElementById('ba').onclick=function(e){e.stopPropagation();cG='A';this.style.background='#4CAF50';document.getElementById('bb').style.background='rgba(255,152,0,.4)'};
-    document.getElementById('bb').onclick=function(e){e.stopPropagation();cG='B';this.style.background='#FF9800';document.getElementById('ba').style.background='rgba(76,175,80,.4)'};
-    document.getElementById('cl').onclick=function(e){e.stopPropagation();if(gA._els)gA._els.forEach(x=>x.classList.remove('calc-a'));if(gB._els)gB._els.forEach(x=>x.classList.remove('calc-b'));gA=[];gB=[];up()};
-    document.getElementById('cx').onclick=function(e){e.stopPropagation();if(gA._els)gA._els.forEach(x=>x.classList.remove('calc-a'));if(gB._els)gB._els.forEach(x=>x.classList.remove('calc-b'));p.remove();st.remove();window._ct=false};
-}
-</script>
-<button onclick="startCalcTool()" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:bold;">🚀 启用悬浮计算工具</button>
-"""
-            st.components.v1.html(calc_tool_js, height=60)
         
         # 数据清洗
         cleaned_df = clean_data(original_df)
