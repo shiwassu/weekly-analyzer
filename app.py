@@ -746,93 +746,33 @@ def main():
             default_threshold = 15  # 备用值，但不会被使用
     
     # 主内容区
-    st.subheader("📁 数据来源")
-    
-    # 报表系统快捷入口
-    with st.expander("🔗 报表系统快捷入口", expanded=False):
-        st.markdown("""
-        **使用方法：**
-        1. 点击下方链接打开报表系统
-        2. 在报表系统中选择并复制数据（Ctrl+C）
-        3. 回到本页面，选择"粘贴数据"方式导入
-        """)
-        col1, col2 = st.columns(2)
-        with col1:
-            st.link_button("🚀 打开 Infoc 报表系统", "http://base.cmcm.com:8080/", use_container_width=True)
-        with col2:
-            # 可以添加更多报表系统链接
-            custom_url = st.text_input("自定义报表地址", placeholder="输入其他报表系统URL")
-            if custom_url:
-                st.link_button("打开自定义地址", custom_url, use_container_width=True)
-    
-    # 数据导入方式选择
-    data_source = st.radio(
-        "选择数据导入方式",
-        ["上传文件", "粘贴数据"],
-        horizontal=True,
-        help="上传文件支持CSV/Excel；粘贴数据支持从报表系统复制的表格"
+    st.subheader("📁 数据上传")
+    uploaded_file = st.file_uploader(
+        "选择数据文件",
+        type=['csv', 'xlsx', 'xls'],
+        help="支持CSV、Excel格式"
     )
     
-    original_df = None
-    
-    if data_source == "上传文件":
-        uploaded_file = st.file_uploader(
-            "选择数据文件",
-            type=['csv', 'xlsx', 'xls'],
-            help="支持CSV、Excel格式"
-        )
-    
-        if uploaded_file is not None:
-            # 读取文件数据
-            try:
-                if uploaded_file.name.endswith('.csv'):
-                    for encoding in ['utf-8', 'gbk', 'gb2312', 'utf-8-sig']:
-                        try:
-                            uploaded_file.seek(0)
-                            original_df = pd.read_csv(uploaded_file, encoding=encoding)
-                            break
-                        except:
-                            continue
-                else:
-                    original_df = pd.read_excel(uploaded_file)
-                
-                st.success(f"✅ 成功加载: {len(original_df)} 行, {len(original_df.columns)} 列")
-                
-            except Exception as e:
-                st.error(f"文件读取失败: {str(e)}")
-                return
-    
-    else:  # 粘贴数据
-        st.markdown("**从报表系统复制表格数据后，粘贴到下方：**")
-        pasted_data = st.text_area(
-            "粘贴数据",
-            height=200,
-            placeholder="在报表系统中选择数据区域，Ctrl+C复制，然后在此处Ctrl+V粘贴...\n\n支持Excel/网页表格复制的制表符分隔数据",
-            help="支持从Excel、网页表格复制的数据，自动识别制表符或逗号分隔"
-        )
+    if uploaded_file is not None:
+        # 读取数据
+        try:
+            if uploaded_file.name.endswith('.csv'):
+                for encoding in ['utf-8', 'gbk', 'gb2312', 'utf-8-sig']:
+                    try:
+                        uploaded_file.seek(0)
+                        original_df = pd.read_csv(uploaded_file, encoding=encoding)
+                        break
+                    except:
+                        continue
+            else:
+                original_df = pd.read_excel(uploaded_file)
+            
+            st.success(f"✅ 成功加载: {len(original_df)} 行, {len(original_df.columns)} 列")
+            
+        except Exception as e:
+            st.error(f"文件读取失败: {str(e)}")
+            return
         
-        if pasted_data:
-            try:
-                # 尝试解析粘贴的数据
-                from io import StringIO
-                
-                # 先尝试制表符分隔（Excel/网页表格复制）
-                if '\t' in pasted_data:
-                    original_df = pd.read_csv(StringIO(pasted_data), sep='\t')
-                # 再尝试逗号分隔
-                elif ',' in pasted_data:
-                    original_df = pd.read_csv(StringIO(pasted_data), sep=',')
-                else:
-                    # 尝试自动检测
-                    original_df = pd.read_csv(StringIO(pasted_data), sep=None, engine='python')
-                
-                st.success(f"✅ 成功解析: {len(original_df)} 行, {len(original_df.columns)} 列")
-                
-            except Exception as e:
-                st.error(f"数据解析失败: {str(e)}\n请确保复制的是完整的表格数据")
-                return
-    
-    if original_df is not None:
         # 显示原始数据
         with st.expander("📋 原始数据预览", expanded=False):
             st.dataframe(original_df, use_container_width=True)
