@@ -933,32 +933,69 @@ def main():
         
         with calc_col:
             with st.expander("🧮 快速计算", expanded=True):
-                # 获取数值列
+                # 获取数值列和行索引
                 numeric_cols = original_df.select_dtypes(include=['number']).columns.tolist()
+                row_count = len(original_df)
                 
-                if numeric_cols:
-                    st.markdown("**选择列计算**")
+                if numeric_cols and row_count > 0:
+                    st.markdown("**🟢 组A：选择数据**")
+                    col_a = st.selectbox("列", numeric_cols, key="qc_col_a")
+                    row_a = st.multiselect("行号", list(range(row_count)), default=[], key="qc_row_a",
+                                          format_func=lambda x: f"行{x}")
                     
-                    # 组A选择
-                    col_a = st.selectbox("🟢 组A列", [""] + numeric_cols, key="quick_col_a")
-                    if col_a:
-                        vals_a = original_df[col_a].dropna().tolist()
-                        if vals_a:
-                            st.success(f"**{len(vals_a)}个值**\n和:{sum(vals_a):,.0f}\n均:{sum(vals_a)/len(vals_a):,.1f}")
+                    vals_a = []
+                    if col_a and row_a:
+                        vals_a = [original_df.iloc[r][col_a] for r in row_a if pd.notna(original_df.iloc[r][col_a])]
                     
-                    # 组B选择
-                    col_b = st.selectbox("🟠 组B列", [""] + numeric_cols, key="quick_col_b")
-                    if col_b:
-                        vals_b = original_df[col_b].dropna().tolist()
-                        if vals_b:
-                            st.warning(f"**{len(vals_b)}个值**\n和:{sum(vals_b):,.0f}\n均:{sum(vals_b)/len(vals_b):,.1f}")
+                    st.markdown("**🟠 组B：选择数据**")
+                    col_b = st.selectbox("列", numeric_cols, key="qc_col_b")
+                    row_b = st.multiselect("行号", list(range(row_count)), default=[], key="qc_row_b",
+                                          format_func=lambda x: f"行{x}")
                     
-                    # 对比
-                    if col_a and col_b and vals_a and vals_b:
-                        sum_a, sum_b = sum(vals_a), sum(vals_b)
-                        diff = sum_b - sum_a
-                        pct = (diff / abs(sum_a) * 100) if sum_a != 0 else 0
-                        st.info(f"**对比B-A**\n差:{diff:+,.0f}\n率:{pct:+.1f}%")
+                    vals_b = []
+                    if col_b and row_b:
+                        vals_b = [original_df.iloc[r][col_b] for r in row_b if pd.notna(original_df.iloc[r][col_b])]
+                    
+                    st.markdown("---")
+                    
+                    # 计算函数
+                    def show_stats(vals, name, color):
+                        if not vals:
+                            st.info(f"{name}: 未选择")
+                            return None
+                        import numpy as np
+                        s = sum(vals)
+                        avg = s / len(vals)
+                        mx, mn = max(vals), min(vals)
+                        med = float(np.median(vals))
+                        if color == "green":
+                            st.success(f"""**{name} ({len(vals)}个)**
+➕ 和: **{s:,.2f}**
+📊 均: **{avg:,.2f}**
+⬆️ 大: {mx:,.2f} | ⬇️ 小: {mn:,.2f}
+📍 中位: {med:,.2f}""")
+                        else:
+                            st.warning(f"""**{name} ({len(vals)}个)**
+➕ 和: **{s:,.2f}**
+📊 均: **{avg:,.2f}**
+⬆️ 大: {mx:,.2f} | ⬇️ 小: {mn:,.2f}
+📍 中位: {med:,.2f}""")
+                        return {'sum': s, 'avg': avg, 'count': len(vals)}
+                    
+                    stats_a = show_stats(vals_a, "组A", "green")
+                    stats_b = show_stats(vals_b, "组B", "orange")
+                    
+                    # 对比分析
+                    if stats_a and stats_b:
+                        st.markdown("---")
+                        st.markdown("**📊 对比分析 (B vs A)**")
+                        sum_diff = stats_b['sum'] - stats_a['sum']
+                        sum_pct = (sum_diff / abs(stats_a['sum']) * 100) if stats_a['sum'] != 0 else 0
+                        avg_diff = stats_b['avg'] - stats_a['avg']
+                        avg_pct = (avg_diff / abs(stats_a['avg']) * 100) if stats_a['avg'] != 0 else 0
+                        
+                        st.metric("求和差", f"{sum_diff:+,.2f}", f"{sum_pct:+.2f}%")
+                        st.metric("均值差", f"{avg_diff:+,.2f}", f"{avg_pct:+.2f}%")
                 else:
                     st.info("无数值列")
         
