@@ -924,101 +924,40 @@ def main():
                 return
     
     if original_df is not None:
-        # 点击选择单元格计算工具
-        st.markdown("### 🧮 点击选择计算")
-        st.markdown("**点击表格单元格选择数据，选中后自动计算**（按住Ctrl多选）")
-        
-        # 选择当前组
-        current_group = st.radio("当前添加到", ["� 组A", "🟠 组B"], horizontal=True, key="current_calc_group")
-        
-        # 可选择的dataframe
-        event = st.dataframe(
-            original_df,
-            use_container_width=True,
-            on_select="rerun",
-            selection_mode=["multi-cell"],
-            key="selectable_df"
-        )
-        
-        # 获取选中的单元格
-        selected_cells = event.selection.get("cells", [])
-        
-        # 存储两组数据
-        if "calc_group_a" not in st.session_state:
-            st.session_state.calc_group_a = []
-        if "calc_group_b" not in st.session_state:
-            st.session_state.calc_group_b = []
-        
-        # 添加选中的值到当前组
-        if selected_cells:
-            values = []
-            for cell in selected_cells:
-                row_idx, col_name = cell
-                try:
-                    val = original_df.iloc[row_idx][col_name]
-                    if pd.notna(val) and isinstance(val, (int, float)):
-                        values.append(float(val))
-                except:
-                    pass
+        # 原始数据预览
+        with st.expander("� 原始数据预览", expanded=True):
+            st.dataframe(original_df, use_container_width=True)
             
-            if values:
-                col1, col2 = st.columns(2)
-                with col1:
-                    if st.button(f"➕ 添加 {len(values)} 个值到组A", use_container_width=True):
-                        st.session_state.calc_group_a.extend(values)
-                        st.rerun()
-                with col2:
-                    if st.button(f"➕ 添加 {len(values)} 个值到组B", use_container_width=True):
-                        st.session_state.calc_group_b.extend(values)
-                        st.rerun()
-        
-        # 清除按钮
-        if st.button("🗑️ 清除所有选择"):
-            st.session_state.calc_group_a = []
-            st.session_state.calc_group_b = []
-            st.rerun()
-        
-        # 显示计算结果
-        def calc_and_show(vals, name, color_func):
-            if not vals:
-                st.info(f"{name}: 未选择数据")
-                return None
-            import numpy as np
-            s = sum(vals)
-            avg = s / len(vals)
-            mx, mn = max(vals), min(vals)
-            med = float(np.median(vals))
-            color_func(f"""**{name} ({len(vals)}个数值)**
-- ➕ 求和: **{s:,.2f}**
-- 📊 均值: **{avg:,.2f}**
-- ⬆️ 最大: **{mx:,.2f}** | ⬇️ 最小: **{mn:,.2f}**
-- 📍 中位数: **{med:,.2f}**""")
-            return {'sum': s, 'avg': avg, 'max': mx, 'min': mn, 'count': len(vals)}
-        
-        st.markdown("---")
-        result_col1, result_col2 = st.columns(2)
-        
-        with result_col1:
-            stats_a = calc_and_show(st.session_state.calc_group_a, "🟢 组A", st.success)
-        
-        with result_col2:
-            stats_b = calc_and_show(st.session_state.calc_group_b, "🟠 组B", st.warning)
-        
-        # 对比分析
-        if stats_a and stats_b:
-            st.markdown("### 📊 对比分析 (B vs A)")
-            sum_diff = stats_b['sum'] - stats_a['sum']
-            sum_pct = (sum_diff / abs(stats_a['sum']) * 100) if stats_a['sum'] != 0 else 0
-            avg_diff = stats_b['avg'] - stats_a['avg']
-            avg_pct = (avg_diff / abs(stats_a['avg']) * 100) if stats_a['avg'] != 0 else 0
+            # 书签悬浮计算工具
+            st.markdown("---")
+            st.markdown("**🧮 悬浮计算工具** - 点击下方按钮启用，然后直接点击上方表格单元格选择数据")
             
-            m1, m2 = st.columns(2)
-            with m1:
-                st.metric("求和差值", f"{sum_diff:+,.2f}", f"{sum_pct:+.2f}%")
-            with m2:
-                st.metric("均值差值", f"{avg_diff:+,.2f}", f"{avg_pct:+.2f}%")
-        
-        st.markdown("---")
+            # 内嵌JavaScript工具按钮
+            calc_tool_js = """
+<script>
+function startCalcTool() {
+    if(window._ct){alert('已启用');return;}
+    window._ct=true;
+    var gA=[],gB=[],cG='A';
+    var st=document.createElement('style');
+    st.textContent='.calc-a{background:#4CAF50 !important;color:#fff !important;}.calc-b{background:#FF9800 !important;color:#fff !important;}';
+    document.head.appendChild(st);
+    var p=document.createElement('div');
+    p.style.cssText='position:fixed;top:80px;right:20px;z-index:2147483647;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:15px;border-radius:10px;font-family:Arial;box-shadow:0 4px 20px rgba(0,0,0,.3);min-width:240px;font-size:13px';
+    p.innerHTML='<b>🧮计算工具</b><div style="display:flex;gap:5px;margin:10px 0"><button id="ba" style="flex:1;padding:6px;border:none;border-radius:4px;cursor:pointer;background:#4CAF50;color:#fff">组A</button><button id="bb" style="flex:1;padding:6px;border:none;border-radius:4px;cursor:pointer;background:rgba(255,152,0,.4);color:#fff">组B</button></div><div id="rs" style="background:rgba(0,0,0,.2);padding:10px;border-radius:6px;margin-bottom:10px;line-height:1.6">点击单元格选择</div><div style="display:flex;gap:5px"><button id="cl" style="flex:1;padding:8px;border:none;border-radius:4px;cursor:pointer;background:rgba(255,255,255,.2);color:#fff">清除</button><button id="cx" style="flex:1;padding:8px;border:none;border-radius:4px;cursor:pointer;background:#e74c3c;color:#fff">关闭</button></div>';
+    document.body.appendChild(p);
+    function pn(t){var n=t.replace(/[,%￥$\\s]/g,'');return /^-?\\d+\\.?\\d*$/.test(n)?parseFloat(n):null}
+    function up(){var h='';if(gA.length){var s=gA.reduce((a,b)=>a+b,0);h+='<div style="color:#98FB98"><b>组A('+gA.length+'):</b> 和='+s.toLocaleString()+' 均='+(s/gA.length).toFixed(1)+'</div>'}else h+='<div style="color:#98FB98"><b>组A:</b>未选</div>';if(gB.length){var s2=gB.reduce((a,b)=>a+b,0);h+='<div style="color:#FFD700"><b>组B('+gB.length+'):</b> 和='+s2.toLocaleString()+' 均='+(s2/gB.length).toFixed(1)+'</div>'}else h+='<div style="color:#FFD700"><b>组B:</b>未选</div>';if(gA.length&&gB.length){var s1=gA.reduce((a,b)=>a+b,0),s2=gB.reduce((a,b)=>a+b,0),d=s2-s1;h+='<div style="border-top:1px solid rgba(255,255,255,.3);padding-top:6px;margin-top:6px"><b>对比:</b> '+(d>=0?'+':'')+d.toLocaleString()+' ('+(d>=0?'+':'')+(d/Math.abs(s1)*100).toFixed(2)+'%)</div>'}document.getElementById('rs').innerHTML=h}
+    document.addEventListener('click',function(e){if(p.contains(e.target))return;var el=e.target;var txt=el.innerText.trim();var v=pn(txt);if(v===null)return;e.preventDefault();e.stopPropagation();var cn=cG=='A'?'calc-a':'calc-b',arr=cG=='A'?gA:gB,other=cG=='A'?gB:gA,ocn=cG=='A'?'calc-b':'calc-a';if(!arr._els)arr._els=[];var i=arr._els.indexOf(el);if(i>-1){el.classList.remove(cn);arr.splice(i,1);arr._els.splice(i,1)}else{el.classList.add(cn);arr.push(v);arr._els.push(el)}up()},true);
+    document.getElementById('ba').onclick=function(e){e.stopPropagation();cG='A';this.style.background='#4CAF50';document.getElementById('bb').style.background='rgba(255,152,0,.4)'};
+    document.getElementById('bb').onclick=function(e){e.stopPropagation();cG='B';this.style.background='#FF9800';document.getElementById('ba').style.background='rgba(76,175,80,.4)'};
+    document.getElementById('cl').onclick=function(e){e.stopPropagation();if(gA._els)gA._els.forEach(x=>x.classList.remove('calc-a'));if(gB._els)gB._els.forEach(x=>x.classList.remove('calc-b'));gA=[];gB=[];up()};
+    document.getElementById('cx').onclick=function(e){e.stopPropagation();if(gA._els)gA._els.forEach(x=>x.classList.remove('calc-a'));if(gB._els)gB._els.forEach(x=>x.classList.remove('calc-b'));p.remove();st.remove();window._ct=false};
+}
+</script>
+<button onclick="startCalcTool()" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:bold;">🚀 启用悬浮计算工具</button>
+"""
+            st.components.v1.html(calc_tool_js, height=60)
         
         # 数据清洗
         cleaned_df = clean_data(original_df)
