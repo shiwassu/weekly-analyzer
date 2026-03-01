@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据计算工具安装</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #1f77b4; }
+        .bookmarklet-link {
+            display: inline-block;
+            background: linear-gradient(135deg, #1f77b4, #2ecc71);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 20px 0;
+            cursor: grab;
+            box-shadow: 0 4px 12px rgba(31, 119, 180, 0.4);
+        }
+        .bookmarklet-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(31, 119, 180, 0.5);
+        }
+        .steps {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .steps ol { margin: 0; padding-left: 20px; }
+        .steps li { margin: 10px 0; line-height: 1.6; }
+        .highlight { 
+            background: #fff3cd; 
+            padding: 2px 6px; 
+            border-radius: 4px;
+        }
+        .test-area {
+            margin-top: 30px;
+            padding: 20px;
+            background: #e8f4f8;
+            border-radius: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th { background: #1f77b4; color: white; }
+        tr:nth-child(even) { background: #f9f9f9; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 数据抓取工具</h1>
+        <p>这是一个浏览器书签工具，可以在任何网页上选择并复制表格数据。</p>
+        
+        <h2>安装方法</h2>
+        <div class="steps">
+            <ol>
+                <li><strong>显示书签栏：</strong> 按 <span class="highlight">Ctrl + Shift + B</span> 显示书签栏</li>
+                <li><strong>拖拽安装：</strong> 将下方按钮 <span class="highlight">拖拽</span> 到书签栏</li>
+            </ol>
+        </div>
+        
+        <p>👇 拖拽这个按钮到书签栏：</p>
+        <a class="bookmarklet-link" href="javascript:(function(){if(document.getElementById('tg-overlay')){return;}var s=null;var o=document.createElement('div');o.id='tg-overlay';o.innerHTML='<div style=&quot;position:fixed;top:10px;right:10px;z-index:2147483647;background:%231f77b4;color:white;padding:15px 20px;border-radius:10px;font-family:Arial,sans-serif;box-shadow:0 4px 20px rgba(0,0,0,0.4);min-width:200px;&quot;><div style=&quot;font-weight:bold;font-size:16px;margin-bottom:12px;&quot;>📊 数据抓取工具</div><div id=&quot;tg-status&quot; style=&quot;margin-bottom:12px;font-size:13px;padding:8px;background:rgba(255,255,255,0.15);border-radius:5px;&quot;>鼠标悬停在表格上点击选择</div><button id=&quot;tg-copy&quot; style=&quot;background:%234CAF50;color:white;border:none;padding:10px 20px;border-radius:5px;cursor:pointer;margin-right:8px;font-size:14px;&quot;>复制数据</button><button id=&quot;tg-close&quot; style=&quot;background:%23e74c3c;color:white;border:none;padding:10px 20px;border-radius:5px;cursor:pointer;font-size:14px;&quot;>关闭</button></div>';document.body.appendChild(o);function h(e){var t=e.target.closest('table');if(t&&t!==s){if(s)s.style.outline='';t.style.outline='3px dashed %231f77b4';t.style.outlineOffset='2px';}}function c(e){var t=e.target.closest('table');if(t){e.preventDefault();e.stopPropagation();if(s)s.style.outline='';s=t;t.style.outline='4px solid %232ecc71';t.style.outlineOffset='2px';document.getElementById('tg-status').innerHTML='✅ 已选中 <b>'+t.rows.length+'</b> 行';}}document.addEventListener('mouseover',h,true);document.addEventListener('click',c,true);document.getElementById('tg-copy').onclick=function(e){e.stopPropagation();if(!s){alert('请先点击选择一个表格');return;}var d='';for(var i=0;i<s.rows.length;i++){var r=[];for(var j=0;j<s.rows[i].cells.length;j++){r.push(s.rows[i].cells[j].innerText.trim());}d+=r.join('\t')+'\\n';}navigator.clipboard.writeText(d).then(function(){document.getElementById('tg-status').innerHTML='📋 已复制 <b>'+s.rows.length+'</b> 行到剪贴板！';});};document.getElementById('tg-close').onclick=function(e){e.stopPropagation();if(s)s.style.outline='';document.removeEventListener('mouseover',h,true);document.removeEventListener('click',c,true);o.remove();};})();">📊 数据抓取工具</a>
+        
+        <h2>使用方法</h2>
+        <div class="steps">
+            <ol>
+                <li>打开任意包含表格的网页（如报表系统）</li>
+                <li>点击书签栏中的 <span class="highlight">📊 数据抓取工具</span></li>
+                <li>页面右上角会出现悬浮工具栏</li>
+                <li>点击要抓取的表格，表格会被蓝色边框选中</li>
+                <li>点击 <span class="highlight">复制数据</span> 按钮</li>
+                <li>回到数据分析工具，选择"粘贴数据"，Ctrl+V 粘贴即可</li>
+            </ol>
+        </div>
+        
+        <div class="test-area">
+            <h3>🧪 测试区域</h3>
+            <p>安装完成后，点击书签测试抓取下方表格：</p>
+            <table>
+                <tr>
+                    <th>日期</th>
+                    <th>指标A</th>
+                    <th>指标B</th>
+                    <th>指标C</th>
+                </tr>
+                <tr>
+                    <td>2026-03-01</td>
+                    <td>1234</td>
+                    <td>5678</td>
+                    <td>9012</td>
+                </tr>
+                <tr>
+                    <td>2026-03-02</td>
+                    <td>2345</td>
+                    <td>6789</td>
+                    <td>1023</td>
+                </tr>
+                <tr>
+                    <td>2026-03-03</td>
+                    <td>3456</td>
+                    <td>7890</td>
+                    <td>1134</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

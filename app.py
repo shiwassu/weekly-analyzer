@@ -924,59 +924,55 @@ def main():
                 return
     
     if original_df is not None:
-        # 侧边栏悬浮计算面板
-        with st.sidebar:
-            st.markdown("## 🧮 快速计算")
-            st.markdown("从下方表格复制数据粘贴到这里")
-            
-            input_a = st.text_area("🟢 组A数据", height=80, key="sidebar_input_a", 
-                                   placeholder="粘贴数据...")
-            input_b = st.text_area("🟠 组B数据", height=80, key="sidebar_input_b",
-                                   placeholder="粘贴数据...")
-            
-            def parse_nums(text):
-                import re
-                if not text: return []
-                matches = re.findall(r'-?[\d,]+\.?\d*', text)
-                return [float(m.replace(',','')) for m in matches if m and float(m.replace(',','')) != 0]
-            
-            def show_stats(nums, name):
-                if not nums:
-                    return None
-                import numpy as np
-                s = sum(nums)
-                return {
-                    'count': len(nums), 'sum': s, 'avg': s/len(nums),
-                    'max': max(nums), 'min': min(nums), 'median': float(np.median(nums))
-                }
-            
-            nums_a = parse_nums(input_a)
-            nums_b = parse_nums(input_b)
-            stats_a = show_stats(nums_a, "A")
-            stats_b = show_stats(nums_b, "B")
-            
-            if stats_a:
-                st.success(f"""**🟢 组A ({stats_a['count']}个)**
-➕ 和: {stats_a['sum']:,.2f}
-📊 均: {stats_a['avg']:,.2f}
-⬆️ 大: {stats_a['max']:,.0f} ⬇️ 小: {stats_a['min']:,.0f}""")
-            
-            if stats_b:
-                st.warning(f"""**🟠 组B ({stats_b['count']}个)**
-➕ 和: {stats_b['sum']:,.2f}
-📊 均: {stats_b['avg']:,.2f}
-⬆️ 大: {stats_b['max']:,.0f} ⬇️ 小: {stats_b['min']:,.0f}""")
-            
-            if stats_a and stats_b:
-                diff = stats_b['sum'] - stats_a['sum']
-                pct = (diff / abs(stats_a['sum']) * 100) if stats_a['sum'] else 0
-                st.info(f"""**📊 对比 B-A**
-差值: {diff:+,.2f}
-变化: {pct:+.2f}%""")
-        
-        # 原始数据预览
-        with st.expander("📋 原始数据预览", expanded=True):
-            st.dataframe(original_df, use_container_width=True)
+        # 原始数据预览 - 使用AgGrid支持单元格选择
+        with st.expander("📋 原始数据预览（点击选择单元格）", expanded=True):
+            try:
+                from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, DataReturnMode
+                
+                # 配置AgGrid
+                gb = GridOptionsBuilder.from_dataframe(original_df)
+                gb.configure_selection('multiple', use_checkbox=False, rowMultiSelectWithClick=True)
+                gb.configure_grid_options(enableRangeSelection=True)
+                grid_options = gb.build()
+                
+                # 显示表格
+                grid_response = AgGrid(
+                    original_df,
+                    gridOptions=grid_options,
+                    update_mode=GridUpdateMode.SELECTION_CHANGED,
+                    data_return_mode=DataReturnMode.FILTERED_AND_SORTED,
+                    fit_columns_on_grid_load=True,
+                    enable_enterprise_modules=False,
+                    height=400,
+                    theme='streamlit'
+                )
+                
+                # 获取选中的行
+                selected_rows = grid_response['selected_rows']
+                
+                if selected_rows is not None and len(selected_rows) > 0:
+                    st.markdown("### 🧮 选中数据计算")
+                    selected_df = pd.DataFrame(selected_rows)
+                    
+                    # 获取数值列
+                    numeric_cols = selected_df.select_dtypes(include=['number']).columns.tolist()
+                    
+                    if numeric_cols:
+                        col_to_calc = st.selectbox("选择计算列", numeric_cols)
+                        if col_to_calc:
+                            vals = selected_df[col_to_calc].dropna().tolist()
+                            if vals:
+                                import numpy as np
+                                st.success(f"""**选中 {len(vals)} 个值**
+- ➕ 求和: **{sum(vals):,.2f}**
+- 📊 均值: **{sum(vals)/len(vals):,.2f}**
+- ⬆️ 最大: **{max(vals):,.2f}**
+- ⬇️ 最小: **{min(vals):,.2f}**
+- 📍 中位数: **{float(np.median(vals)):,.2f}**""")
+                    
+            except ImportError:
+                st.dataframe(original_df, use_container_width=True)
+                st.info("提示：安装 streamlit-aggrid 后可启用点击选择功能")
         
         # 数据清洗
         cleaned_df = clean_data(original_df)

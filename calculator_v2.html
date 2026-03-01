@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>悬浮计算工具 V2</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 { color: #333; margin-bottom: 10px; }
+        .subtitle { color: #666; margin-bottom: 30px; }
+        .bookmarklet-link {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 18px 40px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 20px 0;
+            cursor: grab;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s;
+        }
+        .bookmarklet-link:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.5);
+        }
+        .steps {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 25px 0;
+            border-left: 4px solid #667eea;
+        }
+        .steps ol { margin: 0; padding-left: 20px; }
+        .steps li { margin: 12px 0; line-height: 1.8; }
+        .highlight { 
+            background: #e8f0fe; 
+            padding: 3px 8px; 
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 25px 0;
+        }
+        .feature {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .feature-icon { font-size: 24px; margin-bottom: 8px; }
+        .test-area {
+            margin-top: 40px;
+            padding: 25px;
+            background: linear-gradient(135deg, #e8f0fe, #f0e8fe);
+            border-radius: 12px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: white;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: right;
+        }
+        th { background: #667eea; color: white; text-align: center; }
+        td:first-child { text-align: left; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧮 悬浮计算工具 V2</h1>
+        <p class="subtitle">直接点击选择数据，实时计算结果</p>
+        
+        <div class="warning">
+            ⚠️ <b>重要提示：</b> 启用后页面会显示 <span style="color:#667eea;font-weight:bold;">紫色边框</span>，表示工具已激活。直接点击单元格即可选择，<span style="color:#4CAF50;font-weight:bold;">绿色背景</span> 表示已选中。
+        </div>
+
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">➕</div>
+                <div>求和</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📊</div>
+                <div>平均值</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">⬆️</div>
+                <div>最大值</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">⬇️</div>
+                <div>最小值</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🔢</div>
+                <div>计数</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📈</div>
+                <div>涨跌幅</div>
+            </div>
+        </div>
+
+        <h2>安装方法</h2>
+        <div class="steps">
+            <ol>
+                <li>按 <span class="highlight">Ctrl + Shift + B</span> 显示书签栏</li>
+                <li>将下方按钮 <span class="highlight">拖拽</span> 到书签栏</li>
+            </ol>
+        </div>
+        
+        <p>👇 拖拽这个按钮到书签栏：</p>
+        <a class="bookmarklet-link" href="javascript:void(function(){if(window._fcActive){return;}window._fcActive=true;var nums=[];var selectedCells=[];var style=document.createElement('style');style.id='fc-style';style.textContent='body{outline:4px solid %23667eea !important;outline-offset:-4px;}.fc-highlight{background:%234CAF50 !important;color:white !important;transition:background 0.2s;}';document.head.appendChild(style);var panel=document.createElement('div');panel.id='fc-panel';panel.style.cssText='position:fixed;top:20px;right:20px;z-index:2147483647;background:linear-gradient(135deg,%23667eea,%23764ba2);color:white;padding:20px;border-radius:12px;font-family:Arial,sans-serif;box-shadow:0 8px 32px rgba(0,0,0,0.3);min-width:260px;';panel.innerHTML='<div style=\"font-size:18px;font-weight:bold;margin-bottom:12px;\">🧮 计算工具已启用</div><div style=\"background:rgba(255,255,255,0.2);padding:8px 12px;border-radius:6px;margin-bottom:12px;font-size:13px;\">✅ 紫色边框=工具已激活<br>👆 直接点击单元格选择</div><div id=\"fc-count\" style=\"margin-bottom:8px;font-size:13px;\">已选择: 0 个</div><div id=\"fc-results\" style=\"background:rgba(0,0,0,0.2);padding:12px;border-radius:8px;margin-bottom:15px;font-size:14px;line-height:1.8;min-height:60px;\">点击表格单元格开始...</div><button id=\"fc-clear\" style=\"background:rgba(255,255,255,0.25);color:white;border:none;padding:10px 16px;border-radius:6px;cursor:pointer;margin-right:8px;font-size:14px;\">清除</button><button id=\"fc-close\" style=\"background:%23e74c3c;color:white;border:none;padding:10px 16px;border-radius:6px;cursor:pointer;font-size:14px;\">关闭工具</button>';document.body.appendChild(panel);function parseNum(text){var n=text.replace(/[,%￥$\\s]/g,'');var f=parseFloat(n);return isNaN(f)?null:f;}function updateResults(){var countEl=document.getElementById('fc-count');var resultEl=document.getElementById('fc-results');countEl.textContent='已选择: '+nums.length+' 个数值';if(nums.length===0){resultEl.innerHTML='点击表格单元格开始...';return;}var sum=nums.reduce(function(a,b){return a+b;},0);var avg=sum/nums.length;var max=Math.max.apply(null,nums);var min=Math.min.apply(null,nums);var html='<div>➕ 求和: <b>'+sum.toLocaleString('zh-CN',{maximumFractionDigits:2})+'</b></div>';html+='<div>📊 平均: <b>'+avg.toLocaleString('zh-CN',{maximumFractionDigits:2})+'</b></div>';html+='<div>⬆️ 最大: <b>'+max.toLocaleString('zh-CN',{maximumFractionDigits:2})+'</b></div>';html+='<div>⬇️ 最小: <b>'+min.toLocaleString('zh-CN',{maximumFractionDigits:2})+'</b></div>';html+='<div>🔢 计数: <b>'+nums.length+'</b></div>';if(nums.length>=2){var change=((nums[nums.length-1]-nums[0])/Math.abs(nums[0])*100);html+='<div>📈 首尾变化: <b style=\"color:'+(change>=0?'%2398FB98':'%23FFB6C1')+'\">'+(change>=0?'+':'')+change.toFixed(2)+'%</b></div>';}resultEl.innerHTML=html;}function handleClick(e){var cell=e.target;if(cell.tagName!=='TD'&&cell.tagName!=='TH'){cell=e.target.closest('td,th');}if(!cell)return;if(panel.contains(e.target))return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();var idx=selectedCells.indexOf(cell);if(idx>-1){cell.classList.remove('fc-highlight');selectedCells.splice(idx,1);nums.splice(idx,1);}else{var val=parseNum(cell.innerText);if(val!==null){cell.classList.add('fc-highlight');selectedCells.push(cell);nums.push(val);}}updateResults();return false;}document.addEventListener('click',handleClick,true);document.getElementById('fc-clear').onclick=function(e){e.stopPropagation();selectedCells.forEach(function(c){c.classList.remove('fc-highlight');});selectedCells=[];nums=[];updateResults();};document.getElementById('fc-close').onclick=function(e){e.stopPropagation();selectedCells.forEach(function(c){c.classList.remove('fc-highlight');});document.removeEventListener('click',handleClick,true);panel.remove();style.remove();window._fcActive=false;};})();">🧮 悬浮计算工具</a>
+        
+        <h2>使用方法</h2>
+        <div class="steps">
+            <ol>
+                <li>打开报表页面，点击书签 → 页面出现 <span class="highlight">紫色边框</span> 表示已启用</li>
+                <li><b>直接点击</b> 任意单元格选择（不需要按Ctrl）</li>
+                <li>选中的单元格变 <span style="background:#4CAF50;color:white;padding:2px 6px;border-radius:3px;">绿色</span></li>
+                <li>右上角实时显示计算结果</li>
+                <li>再次点击已选单元格可取消选择</li>
+            </ol>
+        </div>
+        
+        <div class="test-area">
+            <h3>🧪 测试区域</h3>
+            <p>安装后点击书签启用，然后点击下方数字测试：</p>
+            <table>
+                <tr>
+                    <th>日期</th>
+                    <th>指标A</th>
+                    <th>指标B</th>
+                    <th>指标C</th>
+                    <th>指标D</th>
+                </tr>
+                <tr>
+                    <td>2026-03-01</td>
+                    <td>1,234</td>
+                    <td>5,678</td>
+                    <td>9,012</td>
+                    <td>3,456</td>
+                </tr>
+                <tr>
+                    <td>2026-03-02</td>
+                    <td>2,345</td>
+                    <td>6,789</td>
+                    <td>10,234</td>
+                    <td>4,567</td>
+                </tr>
+                <tr>
+                    <td>2026-03-03</td>
+                    <td>3,456</td>
+                    <td>7,890</td>
+                    <td>11,456</td>
+                    <td>5,678</td>
+                </tr>
+                <tr>
+                    <td>2026-03-04</td>
+                    <td>4,567</td>
+                    <td>8,901</td>
+                    <td>12,678</td>
+                    <td>6,789</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
