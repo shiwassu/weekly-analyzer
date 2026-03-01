@@ -924,80 +924,101 @@ def main():
                 return
     
     if original_df is not None:
-        # 显示原始数据和快速计算工具
-        data_col, calc_col = st.columns([3, 1])
+        # 点击选择单元格计算工具
+        st.markdown("### 🧮 点击选择计算")
+        st.markdown("**点击表格单元格选择数据，选中后自动计算**（按住Ctrl多选）")
         
-        with data_col:
-            with st.expander("📋 原始数据预览", expanded=False):
-                st.dataframe(original_df, use_container_width=True)
+        # 选择当前组
+        current_group = st.radio("当前添加到", ["� 组A", "🟠 组B"], horizontal=True, key="current_calc_group")
         
-        with calc_col:
-            with st.expander("🧮 快速计算", expanded=True):
-                # 获取数值列和行索引
-                numeric_cols = original_df.select_dtypes(include=['number']).columns.tolist()
-                row_count = len(original_df)
-                
-                if numeric_cols and row_count > 0:
-                    st.markdown("**🟢 组A：选择数据**")
-                    col_a = st.selectbox("列", numeric_cols, key="qc_col_a")
-                    row_a = st.multiselect("行号", list(range(row_count)), default=[], key="qc_row_a",
-                                          format_func=lambda x: f"行{x}")
-                    
-                    vals_a = []
-                    if col_a and row_a:
-                        vals_a = [original_df.iloc[r][col_a] for r in row_a if pd.notna(original_df.iloc[r][col_a])]
-                    
-                    st.markdown("**🟠 组B：选择数据**")
-                    col_b = st.selectbox("列", numeric_cols, key="qc_col_b")
-                    row_b = st.multiselect("行号", list(range(row_count)), default=[], key="qc_row_b",
-                                          format_func=lambda x: f"行{x}")
-                    
-                    vals_b = []
-                    if col_b and row_b:
-                        vals_b = [original_df.iloc[r][col_b] for r in row_b if pd.notna(original_df.iloc[r][col_b])]
-                    
-                    st.markdown("---")
-                    
-                    # 计算函数
-                    def show_stats(vals, name, color):
-                        if not vals:
-                            st.info(f"{name}: 未选择")
-                            return None
-                        import numpy as np
-                        s = sum(vals)
-                        avg = s / len(vals)
-                        mx, mn = max(vals), min(vals)
-                        med = float(np.median(vals))
-                        if color == "green":
-                            st.success(f"""**{name} ({len(vals)}个)**
-➕ 和: **{s:,.2f}**
-📊 均: **{avg:,.2f}**
-⬆️ 大: {mx:,.2f} | ⬇️ 小: {mn:,.2f}
-📍 中位: {med:,.2f}""")
-                        else:
-                            st.warning(f"""**{name} ({len(vals)}个)**
-➕ 和: **{s:,.2f}**
-📊 均: **{avg:,.2f}**
-⬆️ 大: {mx:,.2f} | ⬇️ 小: {mn:,.2f}
-📍 中位: {med:,.2f}""")
-                        return {'sum': s, 'avg': avg, 'count': len(vals)}
-                    
-                    stats_a = show_stats(vals_a, "组A", "green")
-                    stats_b = show_stats(vals_b, "组B", "orange")
-                    
-                    # 对比分析
-                    if stats_a and stats_b:
-                        st.markdown("---")
-                        st.markdown("**📊 对比分析 (B vs A)**")
-                        sum_diff = stats_b['sum'] - stats_a['sum']
-                        sum_pct = (sum_diff / abs(stats_a['sum']) * 100) if stats_a['sum'] != 0 else 0
-                        avg_diff = stats_b['avg'] - stats_a['avg']
-                        avg_pct = (avg_diff / abs(stats_a['avg']) * 100) if stats_a['avg'] != 0 else 0
-                        
-                        st.metric("求和差", f"{sum_diff:+,.2f}", f"{sum_pct:+.2f}%")
-                        st.metric("均值差", f"{avg_diff:+,.2f}", f"{avg_pct:+.2f}%")
-                else:
-                    st.info("无数值列")
+        # 可选择的dataframe
+        event = st.dataframe(
+            original_df,
+            use_container_width=True,
+            on_select="rerun",
+            selection_mode=["multi-cell"],
+            key="selectable_df"
+        )
+        
+        # 获取选中的单元格
+        selected_cells = event.selection.get("cells", [])
+        
+        # 存储两组数据
+        if "calc_group_a" not in st.session_state:
+            st.session_state.calc_group_a = []
+        if "calc_group_b" not in st.session_state:
+            st.session_state.calc_group_b = []
+        
+        # 添加选中的值到当前组
+        if selected_cells:
+            values = []
+            for cell in selected_cells:
+                row_idx, col_name = cell
+                try:
+                    val = original_df.iloc[row_idx][col_name]
+                    if pd.notna(val) and isinstance(val, (int, float)):
+                        values.append(float(val))
+                except:
+                    pass
+            
+            if values:
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button(f"➕ 添加 {len(values)} 个值到组A", use_container_width=True):
+                        st.session_state.calc_group_a.extend(values)
+                        st.rerun()
+                with col2:
+                    if st.button(f"➕ 添加 {len(values)} 个值到组B", use_container_width=True):
+                        st.session_state.calc_group_b.extend(values)
+                        st.rerun()
+        
+        # 清除按钮
+        if st.button("🗑️ 清除所有选择"):
+            st.session_state.calc_group_a = []
+            st.session_state.calc_group_b = []
+            st.rerun()
+        
+        # 显示计算结果
+        def calc_and_show(vals, name, color_func):
+            if not vals:
+                st.info(f"{name}: 未选择数据")
+                return None
+            import numpy as np
+            s = sum(vals)
+            avg = s / len(vals)
+            mx, mn = max(vals), min(vals)
+            med = float(np.median(vals))
+            color_func(f"""**{name} ({len(vals)}个数值)**
+- ➕ 求和: **{s:,.2f}**
+- 📊 均值: **{avg:,.2f}**
+- ⬆️ 最大: **{mx:,.2f}** | ⬇️ 最小: **{mn:,.2f}**
+- 📍 中位数: **{med:,.2f}**""")
+            return {'sum': s, 'avg': avg, 'max': mx, 'min': mn, 'count': len(vals)}
+        
+        st.markdown("---")
+        result_col1, result_col2 = st.columns(2)
+        
+        with result_col1:
+            stats_a = calc_and_show(st.session_state.calc_group_a, "🟢 组A", st.success)
+        
+        with result_col2:
+            stats_b = calc_and_show(st.session_state.calc_group_b, "🟠 组B", st.warning)
+        
+        # 对比分析
+        if stats_a and stats_b:
+            st.markdown("### 📊 对比分析 (B vs A)")
+            sum_diff = stats_b['sum'] - stats_a['sum']
+            sum_pct = (sum_diff / abs(stats_a['sum']) * 100) if stats_a['sum'] != 0 else 0
+            avg_diff = stats_b['avg'] - stats_a['avg']
+            avg_pct = (avg_diff / abs(stats_a['avg']) * 100) if stats_a['avg'] != 0 else 0
+            
+            m1, m2 = st.columns(2)
+            with m1:
+                st.metric("求和差值", f"{sum_diff:+,.2f}", f"{sum_pct:+.2f}%")
+            with m2:
+                st.metric("均值差值", f"{avg_diff:+,.2f}", f"{avg_pct:+.2f}%")
+        
+        st.markdown("---")
         
         # 数据清洗
         cleaned_df = clean_data(original_df)
