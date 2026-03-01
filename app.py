@@ -849,12 +849,16 @@ def main():
             st.markdown("---")
             st.markdown("### 📊 对比分析 (B vs A)")
             
-            comp_col1, comp_col2 = st.columns(2)
+            comp_col1, comp_col2, comp_col3 = st.columns(3)
             with comp_col1:
-                color = "green" if sum_diff >= 0 else "red"
                 st.metric("求和差值", f"{sum_diff:+,.2f}", f"{sum_pct:+.2f}%")
             with comp_col2:
                 st.metric("均值差值", f"{avg_diff:+,.2f}", f"{avg_pct:+.2f}%")
+            with comp_col3:
+                # 涨跌比（B相对于A的变化率）
+                change_rate = (stats_b['sum'] / stats_a['sum'] - 1) * 100 if stats_a['sum'] != 0 else 0
+                direction = "📈 上涨" if change_rate >= 0 else "📉 下跌"
+                st.metric("涨跌比", f"{direction}", f"{change_rate:+.2f}%")
     
     # 数据导入方式选择
     data_source = st.radio(
