@@ -24,6 +24,7 @@ from docx import Document
 from docx.shared import Inches, Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT
+import db_auth
 
 
 # ============== 页面配置 ==============
@@ -33,6 +34,9 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# 初始化数据库（应用启动时执行一次）
+db_auth.init_db()
 
 # ============== 样式 ==============
 st.markdown("""
@@ -843,6 +847,64 @@ def create_word_report(comparison_df, analysis_text, thresholds):
     return output
 
 
+# ============== 登录 / 注册页面 ==============
+def show_auth_page():
+    st.markdown("""
+    <div style="max-width:420px;margin:80px auto 0;padding:36px 40px 32px;
+                background:rgba(255,255,255,0.72);backdrop-filter:blur(16px);
+                border-radius:20px;border:1px solid rgba(120,160,255,0.25);
+                box-shadow:0 8px 32px rgba(58,123,213,0.12);">
+        <div style="text-align:center;margin-bottom:28px;">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="48" height="48" rx="14" fill="url(#authg)"/>
+                <circle cx="24" cy="19" r="7" fill="white" fill-opacity="0.9"/>
+                <path d="M10 40c0-7.732 6.268-14 14-14s14 6.268 14 14" stroke="white"
+                      stroke-width="2.5" stroke-linecap="round" fill="none" fill-opacity="0.9"/>
+                <defs><linearGradient id="authg" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#3a7bd5"/>
+                    <stop offset="100%" stop-color="#00d2ff"/>
+                </linearGradient></defs>
+            </svg>
+            <h2 style="margin:12px 0 4px;color:#1e3a6e;font-size:1.4rem;font-weight:700;">周均数据对比分析器</h2>
+            <p style="color:#6b7db3;font-size:0.85rem;margin:0;">请登录或注册以使用全部功能</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    _, col, _ = st.columns([1, 1.6, 1])
+    with col:
+        tab_login, tab_reg = st.tabs(["🔑 登录", "📝 注册"])
+
+        with tab_login:
+            with st.form("login_form"):
+                u = st.text_input("用户名", key="login_u")
+                p = st.text_input("密码", type="password", key="login_p")
+                if st.form_submit_button("登录", use_container_width=True, type="primary"):
+                    ok, msg, uid = db_auth.login_user(u, p)
+                    if ok:
+                        st.session_state["authenticated"] = True
+                        st.session_state["username"] = u.strip()
+                        st.session_state["user_id"] = uid
+                        st.rerun()
+                    else:
+                        st.error(msg)
+
+        with tab_reg:
+            with st.form("reg_form"):
+                u2 = st.text_input("用户名", key="reg_u")
+                p2 = st.text_input("密码（至少 6 位）", type="password", key="reg_p")
+                p3 = st.text_input("确认密码", type="password", key="reg_p2")
+                if st.form_submit_button("注册", use_container_width=True, type="primary"):
+                    if p2 != p3:
+                        st.error("两次密码不一致")
+                    else:
+                        ok, msg = db_auth.register_user(u2, p2)
+                        if ok:
+                            st.success(msg)
+                        else:
+                            st.error(msg)
+
+
 # ============== 示例数据 ==============
 def get_demo_comparison():
     """返回示例对比数据，列结构与真实 comparison_df 完全一致"""
@@ -867,6 +929,14 @@ def get_demo_comparison():
 
 # ============== 主界面 ==============
 def main():
+    # ── 认证门控 ──
+    if not st.session_state.get("authenticated"):
+        show_auth_page()
+        return
+
+    uid = st.session_state["user_id"]
+    uname = st.session_state["username"]
+
     st.markdown('''
 <div class="main-header">
     <div style="display:flex;align-items:center;justify-content:center;gap:14px">
@@ -890,6 +960,23 @@ def main():
     
     # 侧边栏配置
     with st.sidebar:
+        # 用户信息 + 登出
+        st.markdown(f"""
+        <div style="background:rgba(58,123,213,0.08);border-radius:12px;
+                    padding:10px 14px;margin-bottom:12px;
+                    border:1px solid rgba(58,123,213,0.18);">
+            <span style="font-size:0.8rem;color:#6b7db3;">已登录账户</span><br/>
+            <b style="color:#1e3a6e;font-size:1rem;">👤 {uname}</b>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("🚪 退出登录", use_container_width=True):
+            for k in ["authenticated", "username", "user_id",
+                      "comparison_df", "analysis_text", "original_df",
+                      "cleaned_df", "process_df", "thresholds",
+                      "prev_label", "curr_label"]:
+                st.session_state.pop(k, None)
+            st.rerun()
+        st.divider()
         st.header("⚙️ 配置设置")
         
         # AI设置
@@ -1103,7 +1190,29 @@ def main():
                     original_df = pd.read_excel(uploaded_file)
                 
                 st.success(f"✅ 成功加载: {len(original_df)} 行, {len(original_df.columns)} 列")
-                
+
+                # ── 自动匹配阈值模板 ──
+                matched = db_auth.find_matching_profile(uid, uploaded_file.name)
+                if matched:
+                    _key = f"_profile_prompt_{matched['profile_name']}"
+                    if not st.session_state.get(_key):
+                        st.info(
+                            f"📂 检测到文件名「**{uploaded_file.name}**」与已保存模板"
+                            f"「**{matched['profile_name']}**」匹配，是否直接应用该阈值配置？"
+                        )
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            if st.button("✅ 应用模板", key="apply_matched_profile",
+                                         use_container_width=True, type="primary"):
+                                st.session_state["active_thresholds"] = matched["thresholds"]
+                                st.session_state[_key] = True
+                                st.success(f"已应用模板「{matched['profile_name']}」")
+                                st.rerun()
+                        with c2:
+                            if st.button("❌ 不应用", key="skip_matched_profile",
+                                         use_container_width=True):
+                                st.session_state[_key] = True
+
             except Exception as e:
                 st.error(f"文件读取失败: {str(e)}")
                 return
@@ -1543,8 +1652,9 @@ def main():
         st.subheader("⚡ 异常阈值设定")
         st.caption("为各指标设置异常阈值（涨跌率超过阈值视为异常）")
         
-        # 初始化阈值
-        thresholds = {'__default__': default_threshold}
+        # 初始化阈值（支持从已加载模板读取）
+        _active = st.session_state.get("active_thresholds", {})
+        thresholds = {'__default__': _active.get('__default__', default_threshold)}
         
         # 获取所有指标（根据模式不同获取方式不同）
         if data_mode == "模式1: 直接对比（已有周均数据）":
@@ -1600,17 +1710,69 @@ def main():
                             disabled=True
                         )
                     else:
-                        # 取消默认阈值时，可自由编辑
+                        # 取消默认阈值时，可自由编辑；若有加载的模板则用模板值
+                        _init_val = _active.get(m, 15)
                         thresholds[m] = st.slider(
                             f"阈值",
                             min_value=0,
                             max_value=100,
-                            value=15,
+                            value=_init_val,
                             key=f"slider_{m}",
                             label_visibility="collapsed",
                             disabled=False
                         )
         
+        # ── 阈值模板管理 ──────────────────────────────────────────
+        with st.expander("💾 阈值模板管理", expanded=False):
+            _profiles = db_auth.get_profiles(uid)
+            _profile_names = [p["profile_name"] for p in _profiles]
+
+            if _profiles:
+                st.markdown("**已保存的模板**")
+                _sel = st.selectbox("选择模板", _profile_names, key="profile_select")
+                _sel_data = next((p for p in _profiles if p["profile_name"] == _sel), None)
+
+                _c1, _c2, _c3 = st.columns(3)
+                with _c1:
+                    if st.button("📥 加载", use_container_width=True, key="load_profile"):
+                        # 清除已有滑块 session_state，使 value= 生效
+                        for _k in list(st.session_state.keys()):
+                            if _k.startswith("slider_"):
+                                del st.session_state[_k]
+                        st.session_state["active_thresholds"] = _sel_data["thresholds"]
+                        st.success(f"已加载模板「{_sel}」，请查看阈值已更新")
+                        st.rerun()
+                with _c2:
+                    _new_name = st.text_input("重命名为", key="rename_input",
+                                             placeholder="输入新名称")
+                    if st.button("✏️ 重命名", use_container_width=True, key="rename_profile"):
+                        ok, msg = db_auth.rename_profile(uid, _sel, _new_name)
+                        st.success(msg) if ok else st.error(msg)
+                        st.rerun()
+                with _c3:
+                    if st.button("🗑️ 删除", use_container_width=True, key="del_profile"):
+                        ok, msg = db_auth.delete_profile(uid, _sel)
+                        st.success(msg) if ok else st.error(msg)
+                        if ok and st.session_state.get("active_thresholds") == _sel_data["thresholds"]:
+                            st.session_state.pop("active_thresholds", None)
+                        st.rerun()
+
+                if _sel_data:
+                    st.caption(f"📅 上次更新：{_sel_data['updated_at']}")
+            else:
+                st.caption("暂无已保存模板")
+
+            st.divider()
+            st.markdown("**保存当前阈值为新模板**")
+            _save_name = st.text_input("模板名称", key="save_profile_name",
+                                       placeholder="例：会员业务_周报")
+            if st.button("💾 保存当前阈值", use_container_width=True,
+                         type="primary", key="save_profile_btn"):
+                ok, msg = db_auth.save_profile(uid, _save_name, thresholds)
+                st.success(msg) if ok else st.error(msg)
+                if ok:
+                    st.rerun()
+
         # 执行分析
         if st.button("🚀 开始分析", type="primary", use_container_width=True):
             with st.spinner("正在分析数据..."):
@@ -1730,6 +1892,31 @@ def main():
 
     styled_df = comparison_df.style.apply(highlight_abnormal, axis=1)
     st.dataframe(styled_df, use_container_width=True)
+
+    # 对比数据下载
+    _dl1, _dl2 = st.columns(2)
+    with _dl1:
+        _csv = comparison_df.to_csv(index=False, encoding='utf-8-sig')
+        st.download_button(
+            "📥 下载对比数据 CSV",
+            data=_csv.encode('utf-8-sig'),
+            file_name=f"对比数据_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            mime="text/csv",
+            use_container_width=True,
+            key="dl_cmp_csv"
+        )
+    with _dl2:
+        _xls_buf = BytesIO()
+        comparison_df.to_excel(_xls_buf, index=False)
+        _xls_buf.seek(0)
+        st.download_button(
+            "📊 下载对比数据 Excel",
+            data=_xls_buf,
+            file_name=f"对比数据_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+            key="dl_cmp_xlsx"
+        )
 
     abnormal_df = comparison_df[comparison_df['是否异常'] == True]
     if not abnormal_df.empty:
