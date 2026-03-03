@@ -1658,10 +1658,25 @@ def main():
         
         # 获取所有指标（根据模式不同获取方式不同）
         if data_mode == "模式1: 直接对比（已有周均数据）":
-            # 模式1: 从指标列获取
-            all_metrics = process_df[metric_col].dropna().unique().tolist()
+            import re as _re_m1
+            _dpat = _re_m1.compile(r'^\d{4}[-/]\d{1,2}[-/]\d{1,2}')
+            def _vals_are_date_like(col):
+                sample = cleaned_df[col].dropna().astype(str).head(10)
+                hits = sum(1 for v in sample if _dpat.match(v.strip()))
+                return hits >= max(1, len(sample) // 2)
+            def _s_is_date_or_num(s):
+                if _dpat.match(s): return True
+                try: float(s.replace(',', '')); return True
+                except ValueError: return False
+            _raw = process_df[metric_col].dropna().unique().tolist()
+            _raw_strs = [str(v).strip() for v in _raw[:10]]
+            if _raw_strs and all(_s_is_date_or_num(s) for s in _raw_strs):
+                # metric_col 无真正指标名 → 用列名作为指标，按值排除日期列
+                all_metrics = [c for c in cols if not _vals_are_date_like(c)]
+            else:
+                all_metrics = _raw
         else:
-            # 模式2: 从选择的指标列名获取
+            # 模式2/3: 从选择的指标列名获取
             all_metrics = metric_cols_select
         
         # 选择要分析的指标（带全选功能）
