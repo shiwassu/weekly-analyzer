@@ -861,25 +861,10 @@ def main():
                 st.metric("涨跌比", f"{direction}", f"{change_rate:+.2f}%")
     
     # 截图识别工具
-    with st.expander("📷 截图识别工具（支持Ctrl+V粘贴）", expanded=False):
-        st.markdown("**截图识别数字，支持Ctrl+V直接粘贴截图**")
-        
-        ocr_col1, ocr_col2 = st.columns([2, 1])
-        
-        with ocr_col1:
-            # 启动Gradio服务的说明
-            st.info("""
-            **使用方法：**
-            1. 点击下方按钮启动截图识别工具
-            2. 在新窗口中点击图片区域
-            3. 按 Ctrl+V 粘贴截图
-            4. 点击"识别数字"
-            """)
-        
-        with ocr_col2:
-            st.link_button("🚀 打开截图识别工具", "http://localhost:8510", 
-                          use_container_width=True, type="primary")
-            st.caption("需先启动Gradio服务")
+    with st.expander("📷 截图识别数字", expanded=False):
+        st.markdown("**上传截图自动识别数字 → 支持双组对比**")
+        st.link_button("🚀 打开截图识别工具", "https://shiwassu-tomato-ocr.hf.space", use_container_width=True)
+        st.components.v1.iframe("https://shiwassu-tomato-ocr.hf.space", height=620, scrolling=True)
     
     # 数据导入方式选择
     data_source = st.radio(
