@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>书签工具测试页面</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h1 { color: #333; }
+        table { border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: right; }
+        th { background: #f5f5f5; }
+        .instructions { background: #e8f4fc; padding: 15px; border-radius: 8px; margin: 20px 0; }
+        .bookmarklet-link { 
+            display: inline-block; 
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white; 
+            padding: 12px 24px; 
+            border-radius: 8px; 
+            text-decoration: none;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>📊 书签悬浮计算工具测试</h1>
+    
+    <div class="instructions">
+        <h3>使用说明：</h3>
+        <ol>
+            <li>将下方按钮<strong>拖拽到书签栏</strong></li>
+            <li>点击书签启用悬浮计算工具</li>
+            <li>点击表格中的数字选择（绿色=组A，橙色=组B）</li>
+            <li>自动计算求和、均值、对比</li>
+        </ol>
+        
+        <p><strong>拖拽此按钮到书签栏 👇</strong></p>
+        <a class="bookmarklet-link" href="javascript:(function(){if(window._ct){alert('已启用');return}window._ct=true;var gA=[],gB=[],cG='A';var st=document.createElement('style');st.textContent='.calc-a{background:%234CAF50 !important;color:%23fff !important;box-shadow:0 0 0 2px %234CAF50 !important}.calc-b{background:%23FF9800 !important;color:%23fff !important;box-shadow:0 0 0 2px %23FF9800 !important}';document.head.appendChild(st);var p=document.createElement('div');p.id='calc-panel';p.style.cssText='position:fixed;top:80px;right:20px;z-index:2147483647;background:linear-gradient(135deg,%23667eea,%23764ba2);color:%23fff;padding:15px;border-radius:12px;font-family:Arial,sans-serif;box-shadow:0 4px 20px rgba(0,0,0,.3);min-width:260px;font-size:13px';p.innerHTML='<div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:10px\"><b style=\"font-size:15px\">🧮 快速计算</b><span id=\"cx\" style=\"cursor:pointer;font-size:18px\">✕</span></div><div style=\"display:flex;gap:6px;margin-bottom:12px\"><button id=\"ba\" style=\"flex:1;padding:8px;border:none;border-radius:6px;cursor:pointer;background:%234CAF50;color:%23fff;font-weight:bold\">🟢 组A</button><button id=\"bb\" style=\"flex:1;padding:8px;border:none;border-radius:6px;cursor:pointer;background:rgba(255,152,0,.5);color:%23fff;font-weight:bold\">🟠 组B</button></div><div id=\"rs\" style=\"background:rgba(0,0,0,.2);padding:12px;border-radius:8px;line-height:1.8;min-height:80px\">点击数字选择数据</div><div style=\"display:flex;gap:6px;margin-top:10px\"><button id=\"cl\" style=\"flex:1;padding:8px;border:none;border-radius:6px;cursor:pointer;background:rgba(255,255,255,.2);color:%23fff\">🗑️ 清除</button></div>';document.body.appendChild(p);function pn(t){var n=t.replace(/[,%￥$\\s]/g,'');return/^-?\\d+\\.?\\d*$/.test(n)?parseFloat(n):null}function up(){var h='';if(gA.length){var s=gA.reduce(function(a,b){return a+b},0);var avg=s/gA.length;h+='<div style=\"color:%2398FB98\"><b>🟢组A ('+gA.length+'个)</b><br>和: '+s.toLocaleString()+' | 均: '+avg.toFixed(1)+'</div>'}else{h+='<div style=\"color:%2398FB98\"><b>🟢组A:</b> 未选择</div>'}if(gB.length){var s2=gB.reduce(function(a,b){return a+b},0);var avg2=s2/gB.length;h+='<div style=\"color:%23FFD700;margin-top:8px\"><b>🟠组B ('+gB.length+'个)</b><br>和: '+s2.toLocaleString()+' | 均: '+avg2.toFixed(1)+'</div>'}else{h+='<div style=\"color:%23FFD700;margin-top:8px\"><b>🟠组B:</b> 未选择</div>'}if(gA.length&&gB.length){var s1=gA.reduce(function(a,b){return a+b},0);var s2=gB.reduce(function(a,b){return a+b},0);var d=s2-s1;var pct=s1!==0?((d/Math.abs(s1))*100).toFixed(2):0;var dir=d>=0?'📈':'📉';h+='<div style=\"border-top:1px solid rgba(255,255,255,.3);padding-top:8px;margin-top:8px\"><b>📊对比 B-A</b><br>差值: '+(d>=0?'+':'')+d.toLocaleString()+'<br>涨跌: '+dir+' '+pct+'%</div>'}document.getElementById('rs').innerHTML=h}if(!gA._els)gA._els=[];if(!gB._els)gB._els=[];document.addEventListener('click',function(e){if(p.contains(e.target))return;var el=e.target;var txt=el.innerText?el.innerText.trim():'';var v=pn(txt);if(v===null)return;e.preventDefault();e.stopPropagation();var arr=cG==='A'?gA:gB;var cn=cG==='A'?'calc-a':'calc-b';var els=cG==='A'?gA._els:gB._els;var i=els.indexOf(el);if(i>-1){el.classList.remove(cn);arr.splice(i,1);els.splice(i,1)}else{el.classList.add(cn);arr.push(v);els.push(el)}up()},true);document.getElementById('ba').onclick=function(e){e.stopPropagation();cG='A';this.style.background='%234CAF50';document.getElementById('bb').style.background='rgba(255,152,0,.5)'};document.getElementById('bb').onclick=function(e){e.stopPropagation();cG='B';this.style.background='%23FF9800';document.getElementById('ba').style.background='rgba(76,175,80,.5)'};document.getElementById('cl').onclick=function(e){e.stopPropagation();gA._els.forEach(function(x){x.classList.remove('calc-a')});gB._els.forEach(function(x){x.classList.remove('calc-b')});gA.length=0;gB.length=0;gA._els.length=0;gB._els.length=0;up()};document.getElementById('cx').onclick=function(e){e.stopPropagation();gA._els.forEach(function(x){x.classList.remove('calc-a')});gB._els.forEach(function(x){x.classList.remove('calc-b')});p.remove();st.remove();window._ct=false}})();">🚀 快速计算工具</a>
+    </div>
+    
+    <h2>测试数据表格</h2>
+    <table>
+        <tr>
+            <th>日期</th>
+            <th>服活</th>
+            <th>联想默认PDF</th>
+            <th>联想默认率</th>
+            <th>阅读器主活</th>
+        </tr>
+        <tr>
+            <td>2026-02-27</td>
+            <td>9830613</td>
+            <td>4045050</td>
+            <td>41.15%</td>
+            <td>620260</td>
+        </tr>
+        <tr>
+            <td>2026-02-26</td>
+            <td>9604113</td>
+            <td>3956830</td>
+            <td>41.20%</td>
+            <td>587014</td>
+        </tr>
+        <tr>
+            <td>2026-02-25</td>
+            <td>9279431</td>
+            <td>3856168</td>
+            <td>41.56%</td>
+            <td>529393</td>
+        </tr>
+        <tr>
+            <td>2026-02-24</td>
+            <td>8834342</td>
+            <td>3726308</td>
+            <td>42.18%</td>
+            <td>463627</td>
+        </tr>
+        <tr>
+            <td>2026-02-23</td>
+            <td>7244727</td>
+            <td>3258668</td>
+            <td>44.98%</td>
+            <td>222232</td>
+        </tr>
+        <tr>
+            <td>2026-02-22</td>
+            <td>6565259</td>
+            <td>2996330</td>
+            <td>45.64%</td>
+            <td>158248</td>
+        </tr>
+        <tr>
+            <td>2026-02-21</td>
+            <td>6210661</td>
+            <td>2848019</td>
+            <td>45.86%</td>
+            <td>129772</td>
+        </tr>
+    </table>
+    
+    <h2>测试说明</h2>
+    <p>1. 将上方蓝色按钮拖拽到浏览器书签栏</p>
+    <p>2. 点击书签栏中的"快速计算工具"启动</p>
+    <p>3. 点击表格中的数字（如9830613）测试是否能选中</p>
+    <p>4. 选中后会显示绿色/橙色高亮</p>
+</body>
+</html>

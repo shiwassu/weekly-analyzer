@@ -927,6 +927,229 @@ def get_demo_comparison():
     return pd.DataFrame(data)
 
 
+# ============== 月度核心数据看板 ==============
+def show_monthly_dashboard(uid):
+    import plotly.graph_objects as _go_m
+
+    st.markdown("#### 📅 月度核心数据看板")
+    st.caption("上传日粒度数据，按月聚合求和与均值，支持月份范围筛选")
+
+    # ── 文件上传 ──
+    mf = st.file_uploader(
+        "上传数据文件（CSV / Excel，每行一天）",
+        type=["csv", "xlsx", "xls"],
+        key="monthly_uploader",
+        help="日期列 + 各指标列，每行为一天数据"
+    )
+
+    if mf is None:
+        st.info("请上传数据文件，格式示例：\n\n| 日期 | 指标A | 指标B |\n|------|-------|-------|\n| 2026-01-01 | 5000 | 120 |\n| 2026-01-02 | 4800 | 115 |")
+        return
+
+    # ── 读取 ──
+    try:
+        if mf.name.endswith(".csv"):
+            raw = None
+            for enc in ["utf-8-sig", "utf-8", "gbk"]:
+                try:
+                    mf.seek(0); raw = pd.read_csv(mf, encoding=enc); break
+                except Exception:
+                    continue
+            if raw is None:
+                st.error("CSV 编码识别失败"); return
+            mdf = raw
+        else:
+            mf.seek(0); mdf = pd.read_excel(mf)
+    except Exception as e:
+        st.error(f"读取失败：{e}"); return
+
+    mcols = list(mdf.columns)
+    st.success(f"✅ 已加载 {len(mdf)} 行 × {len(mcols)} 列")
+
+    # ── 列配置 ──
+    st.markdown("##### 🔧 列配置")
+    date_col = st.selectbox("日期列", mcols, index=0, key="m_date_col")
+    non_date = [c for c in mcols if c != date_col]
+
+    st.markdown("**指标列**")
+    m_select_all = st.checkbox("全选所有指标", value=True, key="m_select_all")
+    if m_select_all:
+        metric_cols = non_date
+    else:
+        metric_cols = st.multiselect(
+            "选择指标列", non_date,
+            default=non_date,
+            key="m_metric_cols"
+        )
+    if not metric_cols:
+        st.warning("请至少选择一个指标列"); return
+
+    # ── 日期解析 + 数值清洗 ──
+    # 先把原始日期字符串存起来（含（六）（日）等标注）
+    mdf["_orig_date"] = mdf[date_col].astype(str).str.strip()
+    # 仅提取 YYYY-MM-DD 部分用于计算，兼容"2026-02-08（日）"等格式
+    import re as _re_date
+    mdf[date_col] = pd.to_datetime(
+        mdf[date_col].astype(str).str.extract(r'(\d{4}[-/]\d{1,2}[-/]\d{1,2})')[0],
+        errors="coerce"
+    )
+    mdf = mdf.dropna(subset=[date_col])
+    mdf = mdf.sort_values(date_col).reset_index(drop=True)
+    # 排序后用原始字符串构建预览 DataFrame（保留百分号、星期标注等）
+    orig_mdf = mdf[["_orig_date"] + metric_cols].copy()
+    orig_mdf = orig_mdf.rename(columns={"_orig_date": date_col})
+    mdf = mdf.drop(columns=["_orig_date"])
+    # 检测含百分号的列
+    pct_cols = set()
+    for c in metric_cols:
+        sample = orig_mdf[c].dropna().astype(str).head(20)
+        if any("%" in v for v in sample):
+            pct_cols.add(c)
+    for c in metric_cols:
+        mdf[c] = pd.to_numeric(
+            mdf[c].astype(str).str.replace(",", "").str.replace("%", ""),
+            errors="coerce"
+        )
+    if len(mdf) == 0:
+        st.error("日期解析后数据为空，请检查日期列格式"); return
+
+    # ── 月份范围选择 ──
+    mdf["_ym"] = mdf[date_col].dt.to_period("M")
+    all_months = sorted(mdf["_ym"].unique().tolist())
+    month_strs = [str(m) for m in all_months]
+
+    st.markdown("##### 📅 月份范围")
+    rc1, rc2 = st.columns(2)
+    with rc1:
+        start_m = st.selectbox("起始月份", month_strs, index=0, key="m_start")
+    with rc2:
+        end_m   = st.selectbox("结束月份", month_strs, index=len(month_strs)-1, key="m_end")
+
+    if start_m > end_m:
+        st.error("起始月份不能晚于结束月份"); return
+
+    _mask = (mdf["_ym"].astype(str) >= start_m) & (mdf["_ym"].astype(str) <= end_m)
+    fdf      = mdf[_mask].copy()
+    orig_fdf = orig_mdf[_mask].copy()
+    if len(fdf) == 0:
+        st.warning("所选范围内无数据"); return
+
+    # ── 按月聚合 ──
+    grp = fdf.groupby("_ym")[metric_cols]
+    agg_sum  = grp.sum().reset_index()
+    agg_mean = grp.mean().reset_index()
+    agg_sum["_ym"]  = agg_sum["_ym"].astype(str)
+    agg_mean["_ym"] = agg_mean["_ym"].astype(str)
+
+    # 最新月 vs 上月
+    latest_sum  = agg_sum.iloc[-1]
+    prev_sum    = agg_sum.iloc[-2]  if len(agg_sum)  >= 2 else None
+    latest_mean = agg_mean.iloc[-1]
+    prev_mean   = agg_mean.iloc[-2] if len(agg_mean) >= 2 else None
+
+    # ── 趋势图 ──
+    st.markdown("---")
+    st.markdown("##### 📈 月度趋势")
+    tc1, tc2 = st.columns([3, 1])
+    with tc1:
+        trend_ms = st.multiselect("选择指标", metric_cols,
+                                   default=metric_cols[:min(3, len(metric_cols))],
+                                   key="m_trend_sel")
+    with tc2:
+        trend_view = st.radio("维度", ["求和", "均值"], key="m_trend_view")
+
+    tdf = agg_sum if trend_view == "求和" else agg_mean
+    if trend_ms:
+        _colors = ["#3a7bd5", "#f7971e", "#43a047", "#e53935", "#8e24aa", "#00acc1"]
+        fig = _go_m.Figure()
+        for idx, m in enumerate(trend_ms):
+            fig.add_trace(_go_m.Scatter(
+                x=tdf["_ym"], y=tdf[m], name=f"{m}（{trend_view}）",
+                mode="lines+markers",
+                line=dict(color=_colors[idx % len(_colors)], width=2),
+                marker=dict(size=7)
+            ))
+        fig.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            legend=dict(orientation="h", y=-0.25),
+            margin=dict(l=10, r=10, t=10, b=10),
+            xaxis=dict(gridcolor="rgba(150,150,150,0.15)", title="月份"),
+            yaxis=dict(gridcolor="rgba(150,150,150,0.15)")
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+    # ── 月度明细表（每月两行：求和行 + 均值行） ──
+    st.markdown("---")
+    st.markdown("##### 📋 月度聚合明细")
+
+    def _fmt(v, is_pct=False):
+        if not pd.notna(v): return "—"
+        suffix = "%" if is_pct else ""
+        if v == 0: return f"0{suffix}"
+        if abs(v) >= 1 and v == int(v): return f"{int(v):,}{suffix}"
+        s = f"{v:,.2f}".rstrip("0").rstrip(".")
+        return f"{s}{suffix}"
+
+    rows = []
+    for i, ym in enumerate(agg_sum["_ym"]):
+        s_row = {"月份": ym, "类型": "求和"}
+        a_row = {"月份": ym, "类型": "均值"}
+        for m in metric_cols:
+            is_p = m in pct_cols
+            s_row[m] = _fmt(agg_sum.iloc[i][m], is_p)
+            a_row[m] = _fmt(agg_mean.iloc[i][m], is_p)
+        rows.append(s_row)
+        rows.append(a_row)
+    # 合计行 + 区间均值行
+    total_row = {"月份": "📌 合计",    "类型": "求和"}
+    gavg_row  = {"月份": "📌 区间均值", "类型": "均值"}
+    for m in metric_cols:
+        is_p = m in pct_cols
+        total_row[m] = _fmt(agg_sum[m].sum(), is_p)
+        gavg_row[m]  = _fmt(fdf[m].mean(), is_p)
+    rows.extend([total_row, gavg_row])
+    disp_df = pd.DataFrame(rows)
+    st.dataframe(disp_df, use_container_width=True, hide_index=True)
+
+    # ── 原始数据预览 ──
+    st.markdown("---")
+    st.markdown("##### 🗂 原始数据预览")
+    preview_n = st.slider("显示行数", 10, min(200, len(fdf)), min(50, len(fdf)),
+                          step=10, key="m_preview_n")
+    st.dataframe(
+        orig_fdf.head(preview_n).reset_index(drop=True),
+        use_container_width=True, hide_index=True
+    )
+
+    # ── 下载 ──
+    st.markdown("---")
+    dl1, dl2 = st.columns(2)
+    with dl1:
+        exp_df = agg_sum.copy()
+        exp_df.columns = ["月份"] + [f"{m}_求和" for m in metric_cols]
+        for m in metric_cols:
+            exp_df[f"{m}_均值"] = agg_mean[m].values
+        _csv_bytes = exp_df.to_csv(index=False, encoding="utf-8-sig").encode("utf-8-sig")
+        st.download_button("📥 下载月度聚合 CSV", data=_csv_bytes,
+                           file_name=f"月度聚合_{start_m}_{end_m}.csv",
+                           mime="text/csv", use_container_width=True, key="m_dl_csv")
+    with dl2:
+        md_lines = [f"# 月度核心数据报告\n",
+                    f"**区间**：{start_m} ～ {end_m}　　**生成时间**：{datetime.now().strftime('%Y-%m-%d %H:%M')}\n",
+                    "## 最新月汇总\n"]
+        for m in metric_cols:
+            sv = latest_sum[m]; mv = latest_mean[m]
+            ds = ""
+            if prev_sum is not None and pd.notna(prev_sum[m]) and prev_sum[m] != 0:
+                dp = (sv - prev_sum[m]) / abs(prev_sum[m]) * 100
+                ds = f"（环比 {dp:+.1f}%）"
+            md_lines.append(f"- **{m}**：求和 {sv:,.2f} / 均值 {mv:,.2f} {ds}")
+        md_text = "\n".join(md_lines)
+        st.download_button("📄 下载月报 Markdown", data=md_text.encode("utf-8"),
+                           file_name=f"月度报告_{end_m}.md",
+                           mime="text/markdown", use_container_width=True, key="m_dl_md")
+
+
 # ============== 主界面 ==============
 def main():
     # ── 认证门控 ──
@@ -1037,6 +1260,16 @@ def main():
         else:
             default_threshold = 15  # 备用值，但不会被使用
     
+    # ── 主功能导航 Tab ──
+    _nav = st.radio(
+        "", ["📊 周均对比分析", "📅 月度核心看板"],
+        horizontal=True, key="_main_nav",
+        label_visibility="collapsed"
+    )
+    if _nav == "📅 月度核心看板":
+        show_monthly_dashboard(uid)
+        return
+
     # 主内容区
     st.subheader("📁 数据来源")
     
