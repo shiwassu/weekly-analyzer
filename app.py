@@ -37,43 +37,183 @@ st.set_page_config(
 # ============== 样式 ==============
 st.markdown("""
 <style>
-    .main-header {
-        font-size: 2rem;
-        font-weight: bold;
-        color: #1f77b4;
-        text-align: center;
-        padding: 1rem 0;
-        border-bottom: 2px solid #1f77b4;
-        margin-bottom: 2rem;
-    }
-    .metric-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 1rem;
-        border-radius: 10px;
-        color: white;
-        text-align: center;
-    }
-    .abnormal-tag {
-        background-color: #ff4b4b;
-        color: white;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 0.8rem;
-    }
-    .normal-tag {
-        background-color: #00c853;
-        color: white;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 0.8rem;
-    }
-    .section-header {
-        background-color: #f0f2f6;
-        padding: 0.5rem 1rem;
-        border-left: 4px solid #1f77b4;
-        margin: 1rem 0;
-        font-weight: bold;
-    }
+/* ---- 全局背景 ---- */
+[data-testid="stAppViewContainer"] {
+    background: linear-gradient(135deg, #e8f0fe 0%, #f0f4ff 40%, #e8f5e9 100%);
+    min-height: 100vh;
+}
+[data-testid="stHeader"] {
+    background: rgba(240,244,255,0.6);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(99,140,255,0.2);
+}
+
+/* ---- 侧边栏毛玻璃 ---- */
+[data-testid="stSidebar"] {
+    background: rgba(255,255,255,0.55) !important;
+    backdrop-filter: blur(18px) !important;
+    border-right: 1px solid rgba(120,160,255,0.25) !important;
+    box-shadow: 4px 0 24px rgba(80,120,220,0.08) !important;
+}
+[data-testid="stSidebar"] .stMarkdown h2,
+[data-testid="stSidebar"] .stMarkdown h3 {
+    color: #2a4bbd;
+}
+
+/* ---- 主标题 ---- */
+.main-header {
+    text-align: center;
+    padding: 1.5rem 0 1rem;
+}
+.main-header h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    background: linear-gradient(90deg, #3a7bd5, #00d2ff, #3a7bd5);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shine 4s linear infinite;
+    margin: 0;
+}
+@keyframes shine { to { background-position: 200% center; } }
+.header-line {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #3a7bd5 30%, #00d2ff 70%, transparent);
+    margin: 10px auto;
+    width: 60%;
+    border-radius: 2px;
+}
+.header-subtitle {
+    color: #6b7db3;
+    font-size: 0.85rem;
+    letter-spacing: 2px;
+    margin-top: 4px;
+}
+
+/* ---- Expander ---- */
+[data-testid="stExpander"] {
+    background: rgba(255,255,255,0.6) !important;
+    backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(200,215,255,0.5) !important;
+    border-radius: 12px !important;
+    margin: 8px 0 !important;
+    box-shadow: 0 4px 16px rgba(60,100,200,0.06) !important;
+}
+[data-testid="stExpander"] summary {
+    font-weight: 600 !important;
+    color: #2a4bbd !important;
+}
+
+/* ---- 按钮 ---- */
+.stButton > button {
+    background: linear-gradient(135deg, #3a7bd5 0%, #00a8cc 100%) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 14px rgba(58,123,213,0.3) !important;
+    transition: all 0.2s !important;
+}
+.stButton > button:hover {
+    box-shadow: 0 6px 20px rgba(58,123,213,0.45) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* ---- 输入框 ---- */
+[data-testid="stTextArea"] textarea,
+[data-testid="stTextInput"] input {
+    background: rgba(255,255,255,0.75) !important;
+    border: 1px solid rgba(120,160,255,0.35) !important;
+    border-radius: 10px !important;
+}
+[data-testid="stTextArea"] textarea:focus,
+[data-testid="stTextInput"] input:focus {
+    border-color: #3a7bd5 !important;
+    box-shadow: 0 0 0 3px rgba(58,123,213,0.12) !important;
+}
+
+/* ---- Metric ---- */
+[data-testid="stMetric"] {
+    background: rgba(255,255,255,0.65) !important;
+    border: 1px solid rgba(200,215,255,0.5) !important;
+    border-radius: 12px !important;
+    padding: 12px 16px !important;
+    box-shadow: 0 4px 16px rgba(60,100,200,0.06) !important;
+}
+[data-testid="stMetricValue"] { color: #2a4bbd !important; }
+
+/* ---- 数据表格 ---- */
+[data-testid="stDataFrame"] {
+    border-radius: 12px !important;
+    border: 1px solid rgba(200,215,255,0.4) !important;
+    box-shadow: 0 4px 16px rgba(60,100,200,0.07) !important;
+    overflow: hidden !important;
+}
+
+/* ---- Divider ---- */
+hr {
+    border: none !important;
+    height: 1px !important;
+    background: linear-gradient(90deg, transparent, rgba(58,123,213,0.3), transparent) !important;
+    margin: 1rem 0 !important;
+}
+
+/* ---- 分区小标题 ---- */
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #2a4bbd;
+    padding: 7px 14px;
+    background: rgba(58,123,213,0.07);
+    border-left: 3px solid #3a7bd5;
+    border-radius: 0 8px 8px 0;
+    margin: 14px 0 8px 0;
+}
+
+/* ---- 状态标签 ---- */
+.abnormal-tag {
+    display: inline-block;
+    background: linear-gradient(135deg, #f45b69, #ff8b5e);
+    color: white;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.normal-tag {
+    display: inline-block;
+    background: linear-gradient(135deg, #00c6a2, #00e0b6);
+    color: white;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* ---- 统计卡片 ---- */
+.metric-card {
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.9);
+    border-radius: 14px;
+    padding: 16px 20px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(60,100,200,0.08);
+    position: relative;
+    overflow: hidden;
+}
+.metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #3a7bd5, #00d2ff);
+    border-radius: 14px 14px 0 0;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -320,20 +460,30 @@ def create_trend_chart(df, date_col, metric_cols, title="数据趋势图"):
 
 def create_comparison_bar_chart(comparison_df, metric_col, prev_label, curr_label):
     """创建对比柱状图"""
+    def to_numeric_col(col):
+        return pd.to_numeric(
+            col.astype(str).str.replace('%', '').str.replace('+', '').str.replace(',', ''),
+            errors='coerce'
+        ).fillna(0)
+
     fig = go.Figure()
     
     fig.add_trace(go.Bar(
         name=prev_label,
         x=comparison_df[metric_col],
-        y=comparison_df[prev_label],
-        marker_color='#636EFA'
+        y=to_numeric_col(comparison_df[prev_label]),
+        marker_color='rgba(58,123,213,0.75)',
+        marker_line_color='rgba(58,123,213,1)',
+        marker_line_width=1,
     ))
     
     fig.add_trace(go.Bar(
         name=curr_label,
         x=comparison_df[metric_col],
-        y=comparison_df[curr_label],
-        marker_color='#EF553B'
+        y=to_numeric_col(comparison_df[curr_label]),
+        marker_color='rgba(0,210,255,0.75)',
+        marker_line_color='rgba(0,180,220,1)',
+        marker_line_width=1,
     ))
     
     fig.update_layout(
@@ -341,7 +491,15 @@ def create_comparison_bar_chart(comparison_df, metric_col, prev_label, curr_labe
         barmode='group',
         xaxis_title="指标",
         yaxis_title="数值",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(255,255,255,0.4)",
+        font=dict(color="#3a4d7a"),
+        legend=dict(
+            orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
+            bgcolor="rgba(255,255,255,0.6)", bordercolor="rgba(120,160,255,0.3)", borderwidth=1
+        ),
+        xaxis=dict(gridcolor="rgba(120,160,255,0.1)"),
+        yaxis=dict(gridcolor="rgba(120,160,255,0.1)"),
     )
     
     return fig
@@ -361,30 +519,36 @@ def create_change_rate_chart(comparison_df, thresholds):
     rate_values = df['涨跌率(%)'].apply(parse_rate)
     
     # 根据异常状态设置颜色
-    colors = ['#EF553B' if abnormal else '#00CC96' for abnormal in df['是否异常']]
-    
+    colors = ['rgba(244,91,105,0.8)' if abnormal else 'rgba(0,184,124,0.8)' for abnormal in df['是否异常']]
+
     fig = go.Figure()
-    
+
     fig.add_trace(go.Bar(
         x=df['指标'],
         y=rate_values,
         marker_color=colors,
-        text=df['涨跌率(%)'],  # 使用已格式化的字符串
+        marker_line_width=0,
+        text=df['涨跌率(%)'],
         textposition='outside'
     ))
-    
+
     # 添加阈值线
     default_threshold = thresholds.get('__default__', 15)
-    fig.add_hline(y=default_threshold, line_dash="dash", line_color="red", 
+    fig.add_hline(y=default_threshold, line_dash="dash", line_color="rgba(244,91,105,0.6)",
                   annotation_text=f"异常阈值 +{default_threshold}%")
-    fig.add_hline(y=-default_threshold, line_dash="dash", line_color="red",
+    fig.add_hline(y=-default_threshold, line_dash="dash", line_color="rgba(244,91,105,0.6)",
                   annotation_text=f"异常阈值 -{default_threshold}%")
-    fig.add_hline(y=0, line_color="gray")
-    
+    fig.add_hline(y=0, line_color="rgba(58,123,213,0.3)", line_width=1)
+
     fig.update_layout(
         title="涨跌率分布（红色=异常，绿色=正常）",
         xaxis_title="指标",
-        yaxis_title="涨跌率(%)"
+        yaxis_title="涨跌率(%)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(255,255,255,0.4)",
+        font=dict(color="#3a4d7a"),
+        xaxis=dict(gridcolor="rgba(120,160,255,0.1)"),
+        yaxis=dict(gridcolor="rgba(120,160,255,0.1)", ticksuffix="%"),
     )
     
     return fig
@@ -679,9 +843,50 @@ def create_word_report(comparison_df, analysis_text, thresholds):
     return output
 
 
+# ============== 示例数据 ==============
+def get_demo_comparison():
+    """返回示例对比数据，列结构与真实 comparison_df 完全一致"""
+    data = {
+        '指标':    ['DAU', 'MAU', '次日留存', '7日留存', '付费率', 'ARPU', 'LTV', '人均时长',
+                   'DAU/MAU', '新增用户', '付费金额', '活跃天数'],
+        '上周均值': ['125000', '860000', '32.1', '18.5', '5.20%', '18.50', '220.0', '42.3',
+                   '14.5', '8500', '42000', '3.8'],
+        '本周均值': ['133000', '895000', '34.5', '19.8', '4.40%', '22.00', '235.0', '44.1',
+                   '11.6', '9200', '44500', '3.9'],
+        '差值':    ['+8000', '+35000', '+2.4', '+1.3', '-0.80%', '+3.50', '+15.0', '+1.8',
+                   '-2.9', '+700', '+2500', '+0.1'],
+        '涨跌率(%)': ['+6.40%', '+4.07%', '+7.48%', '+7.03%', '-15.38%', '+18.92%', '+6.82%', '+4.26%',
+                    '-20.00%', '+8.24%', '+5.95%', '+2.63%'],
+        '是否异常': [False, False, False, False, True, True, False, False,
+                   True, False, False, True],
+        '状态':    ['↑ 正常', '↑ 正常', '↑ 正常', '↑ 正常', '↓ 异常', '↑ 异常', '↑ 正常', '↑ 正常',
+                   '↓ 异常', '↑ 正常', '↑ 正常', '↑ 异常'],
+    }
+    return pd.DataFrame(data)
+
+
 # ============== 主界面 ==============
 def main():
-    st.markdown('<div class="main-header">📊 周均数据对比分析器</div>', unsafe_allow_html=True)
+    st.markdown('''
+<div class="main-header">
+    <div style="display:flex;align-items:center;justify-content:center;gap:14px">
+        <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="44" height="44" rx="12" fill="url(#ghdr)"/>
+            <rect x="8" y="28" width="6" height="10" rx="2" fill="white" fill-opacity="0.95"/>
+            <rect x="17" y="20" width="6" height="18" rx="2" fill="white" fill-opacity="0.95"/>
+            <rect x="26" y="14" width="6" height="24" rx="2" fill="white" fill-opacity="0.95"/>
+            <polyline points="11,27 20,19 29,13 36,9" stroke="white" stroke-width="2" stroke-opacity="0.5" stroke-linecap="round" fill="none"/>
+            <circle cx="36" cy="9" r="2.5" fill="white" fill-opacity="0.9"/>
+            <defs><linearGradient id="ghdr" x1="0" y1="0" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#3a7bd5"/><stop offset="100%" stop-color="#00d2ff"/>
+            </linearGradient></defs>
+        </svg>
+        <h1>周均数据对比分析器</h1>
+    </div>
+    <div class="header-line"></div>
+    <p class="header-subtitle">WEEKLY DATA ANALYSIS PLATFORM</p>
+</div>
+''', unsafe_allow_html=True)
     
     # 侧边栏配置
     with st.sidebar:
@@ -1433,141 +1638,196 @@ def main():
                 
             st.success("✅ 数据分析完成!")
         
-        # 显示分析结果
-        if 'comparison_df' in st.session_state:
-            comparison_df = st.session_state['comparison_df']
-            
+    # 示例阈值配置（无真实数据时展示）
+    if 'comparison_df' not in st.session_state:
+        st.divider()
+        st.subheader("⚡ 异常阈值设定（示例）")
+        st.caption("上传数据后，可为每个指标单独配置异常阈值。以下为示例效果：")
+        with st.expander("📏 各指标阈值配置（示例）", expanded=True):
+            st.caption("🔒 示例：已启用默认阈值，所有指标统一使用 15%")
+            demo_metrics = ['DAU', 'MAU', '次日留存', '付费率', 'ARPU']
+            for m in demo_metrics:
+                c1, c2 = st.columns([1, 3])
+                with c1:
+                    st.markdown(f"**{m}**")
+                with c2:
+                    st.slider(f"阈值_{m}", 0, 100, 15,
+                              label_visibility="collapsed", disabled=True,
+                              key=f"demo_slider_{m}")
+
+    # 显示分析结果（无真实数据时显示示例）
+    is_demo = 'comparison_df' not in st.session_state
+    if is_demo:
+        comparison_df = get_demo_comparison()
+        prev_lbl, curr_lbl = '上周均值', '本周均值'
+        demo_thresholds = {'__default__': 15}
+    else:
+        comparison_df = st.session_state['comparison_df']
+        prev_lbl = st.session_state.get('prev_label', '上周均值')
+        curr_lbl = st.session_state.get('curr_label', '本周均值')
+        demo_thresholds = st.session_state.get('thresholds', {'__default__': 15})
+
+    st.divider()
+    if is_demo:
+        st.subheader("📊 分析结果（示例）")
+        st.info("📌 以下为示例数据效果预览。上传真实数据并点击「🚀 开始分析」后，将自动更新为实际结果。")
+    else:
+        st.subheader("📊 分析结果")
+
+    # 统计卡片
+    def parse_rate_value(rate_str):
+        try:
+            return float(str(rate_str).replace('%', '').replace('+', ''))
+        except:
+            return 0
+
+    rate_numeric = comparison_df['涨跌率(%)'].apply(parse_rate_value)
+
+    total = len(comparison_df)
+    abnormal_count = int(comparison_df['是否异常'].sum())
+    normal_count = total - abnormal_count
+    abnormal_pct = f"{abnormal_count/total*100:.0f}%" if total > 0 else "0%"
+
+    # 解析差值列为数值，用于求和/均值
+    def parse_diff(v):
+        try:
+            return float(str(v).replace('%', '').replace('+', '').replace(',', ''))
+        except:
+            return 0.0
+    diff_numeric = comparison_df['差值'].apply(parse_diff)
+    diff_sum = diff_numeric.sum()
+    diff_mean = diff_numeric.mean()
+    avg_rate = rate_numeric.mean()
+
+    # 行1：指标概览
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("总指标数", total)
+    with col2:
+        st.metric("正常指标", normal_count)
+    with col3:
+        st.metric("异常指标", abnormal_count)
+    with col4:
+        st.metric("异常比例", abnormal_pct)
+
+    # 行2：差值汇总
+    col5, col6, col7 = st.columns(3)
+    with col5:
+        st.metric("求和差值", f"{diff_sum:+,.1f}", delta=f"{avg_rate:+.1f}%")
+    with col6:
+        st.metric("均值差值", f"{diff_mean:+,.1f}", delta=f"{avg_rate:+.1f}%")
+    with col7:
+        direction = "📈 上涨" if avg_rate >= 0 else "📉 下跌"
+        st.metric("涨跌比", direction, delta=f"{avg_rate:+.2f}%")
+
+    # 对比数据表
+    st.markdown("#### 📈 对比数据")
+
+    def highlight_abnormal(row):
+        if row['是否异常']:
+            return ['background-color: #ffcdd2'] * len(row)
+        return [''] * len(row)
+
+    styled_df = comparison_df.style.apply(highlight_abnormal, axis=1)
+    st.dataframe(styled_df, use_container_width=True)
+
+    abnormal_df = comparison_df[comparison_df['是否异常'] == True]
+    if not abnormal_df.empty:
+        st.markdown("#### ⚠️ 异常数据")
+        st.dataframe(abnormal_df, use_container_width=True)
+
+    # 可视化图表
+    st.markdown("#### 📊 数据可视化")
+    chart_tab1, chart_tab2 = st.tabs(["对比柱状图", "涨跌率分布"])
+
+    with chart_tab1:
+        bar_fig = create_comparison_bar_chart(comparison_df, '指标', prev_lbl, curr_lbl)
+        st.plotly_chart(bar_fig, use_container_width=True)
+
+    with chart_tab2:
+        rate_fig = create_change_rate_chart(comparison_df, demo_thresholds)
+        st.plotly_chart(rate_fig, use_container_width=True)
+
+    st.divider()
+
+    # AI分析
+    st.subheader("🤖 智能分析报告")
+    if is_demo:
+        st.caption("上传真实数据并完成分析后，可在此生成AI报告")
+        st.button("📝 生成分析报告", use_container_width=True, disabled=True)
+    else:
+        if st.button("📝 生成分析报告", use_container_width=True):
+            with st.spinner("AI正在分析中..."):
+                analysis_text = generate_ai_analysis(
+                    comparison_df,
+                    st.session_state['original_df'],
+                    st.session_state['thresholds'],
+                    api_key if use_ai else "",
+                    base_url if use_ai and base_url else None
+                )
+                st.session_state['analysis_text'] = analysis_text
+
+        if 'analysis_text' in st.session_state:
+            st.markdown(st.session_state['analysis_text'])
+
             st.divider()
-            st.subheader("📊 分析结果")
-            
-            # 统计卡片
-            # 解析涨跌率字符串为数值
-            def parse_rate_value(rate_str):
-                try:
-                    return float(str(rate_str).replace('%', '').replace('+', ''))
-                except:
-                    return 0
-            
-            rate_numeric = comparison_df['涨跌率(%)'].apply(parse_rate_value)
-            
-            col1, col2, col3, col4 = st.columns(4)
+
+            st.subheader("📥 导出报告")
+            col1, col2, col3 = st.columns(3)
+
             with col1:
-                st.metric("总指标数", len(comparison_df))
+                excel_report = create_excel_report(
+                    comparison_df,
+                    st.session_state['analysis_text'],
+                    st.session_state['thresholds']
+                )
+                st.download_button(
+                    label="📊 下载Excel报告",
+                    data=excel_report,
+                    file_name=f"周均分析报告_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True
+                )
+
             with col2:
-                abnormal_count = comparison_df['是否异常'].sum()
-                st.metric("异常指标", abnormal_count, 
-                         delta=f"{abnormal_count/len(comparison_df)*100:.1f}%" if len(comparison_df) > 0 else "0%")
+                word_report = create_word_report(
+                    comparison_df,
+                    st.session_state['analysis_text'],
+                    st.session_state['thresholds']
+                )
+                st.download_button(
+                    label="📝 下载Word报告",
+                    data=word_report,
+                    file_name=f"周均分析报告_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    use_container_width=True
+                )
+
             with col3:
-                avg_change = rate_numeric.mean()
-                st.metric("平均涨跌", f"{avg_change:+.1f}%", 
-                         delta="上涨" if avg_change > 0 else "下跌")
-            with col4:
-                max_drop = rate_numeric.min()
-                st.metric("最大跌幅", f"{max_drop:.1f}%")
-            
-            # 对比数据表
-            st.markdown("#### 📈 对比数据")
-            
-            # 高亮异常行
-            def highlight_abnormal(row):
-                if row['是否异常']:
-                    return ['background-color: #ffcdd2'] * len(row)
-                return [''] * len(row)
-            
-            styled_df = comparison_df.style.apply(highlight_abnormal, axis=1)
-            st.dataframe(styled_df, use_container_width=True)
-            
-            # 异常数据单独展示
-            abnormal_df = comparison_df[comparison_df['是否异常'] == True]
-            if not abnormal_df.empty:
-                st.markdown("#### ⚠️ 异常数据")
-                st.dataframe(abnormal_df, use_container_width=True)
-            
-            # ========== 可视化图表 ==========
-            st.markdown("#### 📊 数据可视化")
-            
-            chart_tab1, chart_tab2 = st.tabs(["对比柱状图", "涨跌率分布"])
-            
-            with chart_tab1:
-                prev_lbl = st.session_state.get('prev_label', '上周均值')
-                curr_lbl = st.session_state.get('curr_label', '本周均值')
-                bar_fig = create_comparison_bar_chart(comparison_df, '指标', prev_lbl, curr_lbl)
-                st.plotly_chart(bar_fig, use_container_width=True)
-            
-            with chart_tab2:
-                rate_fig = create_change_rate_chart(comparison_df, st.session_state['thresholds'])
-                st.plotly_chart(rate_fig, use_container_width=True)
-            
-            st.divider()
-            
-            # AI分析
-            st.subheader("🤖 智能分析报告")
-            
-            if st.button("📝 生成分析报告", use_container_width=True):
-                with st.spinner("AI正在分析中..."):
-                    analysis_text = generate_ai_analysis(
-                        comparison_df,
-                        st.session_state['original_df'],
-                        st.session_state['thresholds'],
-                        api_key if use_ai else "",
-                        base_url if use_ai and base_url else None
-                    )
-                    st.session_state['analysis_text'] = analysis_text
-            
-            if 'analysis_text' in st.session_state:
-                st.markdown(st.session_state['analysis_text'])
-                
-                st.divider()
-                
-                # 导出报告
-                st.subheader("📥 导出报告")
-                
-                col1, col2, col3 = st.columns(3)
-                
-                with col1:
-                    # Excel报告（只包含处理后数据）
-                    excel_report = create_excel_report(
-                        comparison_df,
-                        st.session_state['analysis_text'],
-                        st.session_state['thresholds']
-                    )
-                    st.download_button(
-                        label="📊 下载Excel报告",
-                        data=excel_report,
-                        file_name=f"周均分析报告_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        use_container_width=True
-                    )
-                
-                with col2:
-                    # Word报告（只包含处理后数据）
-                    word_report = create_word_report(
-                        comparison_df,
-                        st.session_state['analysis_text'],
-                        st.session_state['thresholds']
-                    )
-                    st.download_button(
-                        label="📝 下载Word报告",
-                        data=word_report,
-                        file_name=f"周均分析报告_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx",
-                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                        use_container_width=True
-                    )
-                
-                with col3:
-                    # Markdown报告（只包含处理后数据）
-                    md_report = create_markdown_report(
-                        comparison_df,
-                        st.session_state['analysis_text'],
-                        st.session_state['thresholds']
-                    )
-                    st.download_button(
-                        label="📄 下载Markdown报告",
-                        data=md_report.encode('utf-8'),
-                        file_name=f"周均分析报告_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",
-                        mime="text/markdown",
-                        use_container_width=True
-                    )
+                md_report = create_markdown_report(
+                    comparison_df,
+                    st.session_state['analysis_text'],
+                    st.session_state['thresholds']
+                )
+                st.download_button(
+                    label="📄 下载Markdown报告",
+                    data=md_report.encode('utf-8'),
+                    file_name=f"周均分析报告_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",
+                    mime="text/markdown",
+                    use_container_width=True
+                )
+
+    if is_demo:
+        st.divider()
+        st.subheader("📥 导出报告")
+        st.caption("上传真实数据并生成分析报告后，可在此下载 Excel / Word / Markdown 报告")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.button("📊 下载Excel报告", use_container_width=True, disabled=True)
+        with col2:
+            st.button("📝 下载Word报告", use_container_width=True, disabled=True)
+        with col3:
+            st.button("📄 下载Markdown报告", use_container_width=True, disabled=True)
 
 
 if __name__ == "__main__":
