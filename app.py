@@ -1319,9 +1319,28 @@ def main():
         if data_mode == "模式1: 直接对比（已有周均数据）":
             # ========== 模式1: 直接对比 ==========
             st.markdown("##### 🔧 列配置")
+
+            # 自动检测「指标名称列」：跳过看起来像日期或纯数值的列
+            import re as _re
+            _date_pat = _re.compile(r'^\d{4}[-/]\d{1,2}[-/]\d{1,2}')
+            def _col_is_date_like(col):
+                sample = cleaned_df[col].dropna().astype(str).head(10)
+                return sum(1 for v in sample if _date_pat.match(v.strip())) >= len(sample) // 2
+            def _col_is_numeric_like(col):
+                try:
+                    pd.to_numeric(cleaned_df[col].dropna().head(10))
+                    return True
+                except Exception:
+                    return False
+            _metric_col_default = 0
+            for _ci, _cn in enumerate(cols):
+                if not _col_is_date_like(_cn) and not _col_is_numeric_like(_cn):
+                    _metric_col_default = _ci
+                    break
+
             col1, col2, col3 = st.columns(3)
             with col1:
-                metric_col = st.selectbox("指标名称列", cols, index=0)
+                metric_col = st.selectbox("指标名称列", cols, index=_metric_col_default)
             with col2:
                 prev_col = st.selectbox("对比期数据列（如上周）", cols, index=min(1, len(cols)-1))
             with col3:
@@ -1658,10 +1677,27 @@ def main():
         
         # 获取所有指标（根据模式不同获取方式不同）
         if data_mode == "模式1: 直接对比（已有周均数据）":
-            # 模式1: 从指标列获取
-            all_metrics = process_df[metric_col].dropna().unique().tolist()
+            # 模式1：先尝试从指标列的行值取；若行值全是日期或纯数值
+            # （说明没有独立指标名列，列名本身就是指标名），则改用列名作为指标
+            _raw_metrics = process_df[metric_col].dropna().unique().tolist()
+            _raw_strs = [str(v).strip() for v in _raw_metrics[:10]]
+            import re as _re2
+            _dp2 = _re2.compile(r'^\d{4}[-/]\d{1,2}[-/]\d{1,2}')
+            def _is_date_or_num(s):
+                if _dp2.match(s):
+                    return True
+                try:
+                    float(s.replace(',', ''))
+                    return True
+                except ValueError:
+                    return False
+            if _raw_strs and all(_is_date_or_num(s) for s in _raw_strs):
+                # 行值全是日期/数字 → 用列名（排除日期列名）作为指标
+                all_metrics = [c for c in cols if not _dp2.match(str(c).strip())]
+            else:
+                all_metrics = _raw_metrics
         else:
-            # 模式2: 从选择的指标列名获取
+            # 模式2/3: 从选择的指标列名获取
             all_metrics = metric_cols_select
         
         # 选择要分析的指标（带全选功能）
@@ -1705,7 +1741,7 @@ def main():
                             min_value=0,
                             max_value=100,
                             value=default_threshold,
-                            key=f"slider_{m}",
+                            key=f"slider_v{st.session_state.get('_thr_ver',0)}_{m}",
                             label_visibility="collapsed",
                             disabled=True
                         )
@@ -1717,7 +1753,7 @@ def main():
                             min_value=0,
                             max_value=100,
                             value=_init_val,
-                            key=f"slider_{m}",
+                            key=f"slider_v{st.session_state.get('_thr_ver',0)}_{m}",
                             label_visibility="collapsed",
                             disabled=False
                         )
@@ -1735,12 +1771,11 @@ def main():
                 _c1, _c2, _c3 = st.columns(3)
                 with _c1:
                     if st.button("📥 加载", use_container_width=True, key="load_profile"):
-                        # 清除已有滑块 session_state，使 value= 生效
-                        for _k in list(st.session_state.keys()):
-                            if _k.startswith("slider_"):
-                                del st.session_state[_k]
-                        st.session_state["active_thresholds"] = _sel_data["thresholds"]
-                        st.success(f"已加载模板「{_sel}」，请查看阈值已更新")
+                        _loaded = _sel_data["thresholds"]
+                        st.session_state["active_thresholds"] = _loaded
+                        # 递增版本号 → slider key 变化 → 强制使用 value= 新值
+                        st.session_state["_thr_ver"] = st.session_state.get("_thr_ver", 0) + 1
+                        st.success(f"已加载模板「{_sel}」")
                         st.rerun()
                 with _c2:
                     _new_name = st.text_input("重命名为", key="rename_input",
