@@ -39,7 +39,7 @@ st.set_page_config(
 db_auth.init_db()
 
 # ============== 样式 ==============
-st.markdown("""
+_LIGHT_CSS = """
 <style>
 /* ---- 全局背景 ---- */
 [data-testid="stAppViewContainer"] {
@@ -51,7 +51,6 @@ st.markdown("""
     backdrop-filter: blur(12px);
     border-bottom: 1px solid rgba(99,140,255,0.2);
 }
-
 /* ---- 侧边栏毛玻璃 ---- */
 [data-testid="stSidebar"] {
     background: rgba(255,255,255,0.55) !important;
@@ -60,166 +59,186 @@ st.markdown("""
     box-shadow: 4px 0 24px rgba(80,120,220,0.08) !important;
 }
 [data-testid="stSidebar"] .stMarkdown h2,
-[data-testid="stSidebar"] .stMarkdown h3 {
-    color: #2a4bbd;
-}
-
+[data-testid="stSidebar"] .stMarkdown h3 { color: #2a4bbd; }
 /* ---- 主标题 ---- */
-.main-header {
-    text-align: center;
-    padding: 1.5rem 0 1rem;
-}
+.main-header { text-align: center; padding: 1.5rem 0 1rem; }
 .main-header h1 {
-    font-size: 2.2rem;
-    font-weight: 800;
+    font-size: 2.2rem; font-weight: 800;
     background: linear-gradient(90deg, #3a7bd5, #00d2ff, #3a7bd5);
     background-size: 200% auto;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: shine 4s linear infinite;
-    margin: 0;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; animation: shine 4s linear infinite; margin: 0;
 }
 @keyframes shine { to { background-position: 200% center; } }
 .header-line {
     height: 2px;
     background: linear-gradient(90deg, transparent, #3a7bd5 30%, #00d2ff 70%, transparent);
-    margin: 10px auto;
-    width: 60%;
-    border-radius: 2px;
+    margin: 10px auto; width: 60%; border-radius: 2px;
 }
-.header-subtitle {
-    color: #6b7db3;
-    font-size: 0.85rem;
-    letter-spacing: 2px;
-    margin-top: 4px;
-}
-
+.header-subtitle { color: #6b7db3; font-size: 0.85rem; letter-spacing: 2px; margin-top: 4px; }
 /* ---- Expander ---- */
 [data-testid="stExpander"] {
     background: rgba(255,255,255,0.6) !important;
     backdrop-filter: blur(12px) !important;
     border: 1px solid rgba(200,215,255,0.5) !important;
-    border-radius: 12px !important;
-    margin: 8px 0 !important;
+    border-radius: 12px !important; margin: 8px 0 !important;
     box-shadow: 0 4px 16px rgba(60,100,200,0.06) !important;
 }
-[data-testid="stExpander"] summary {
-    font-weight: 600 !important;
-    color: #2a4bbd !important;
-}
-
+[data-testid="stExpander"] summary { font-weight: 600 !important; color: #2a4bbd !important; }
 /* ---- 按钮 ---- */
 .stButton > button {
     background: linear-gradient(135deg, #3a7bd5 0%, #00a8cc 100%) !important;
-    color: white !important;
-    border: none !important;
-    border-radius: 10px !important;
-    font-weight: 600 !important;
-    box-shadow: 0 4px 14px rgba(58,123,213,0.3) !important;
+    color: white !important; border: none !important; border-radius: 10px !important;
+    font-weight: 600 !important; box-shadow: 0 4px 14px rgba(58,123,213,0.3) !important;
     transition: all 0.2s !important;
 }
 .stButton > button:hover {
-    box-shadow: 0 6px 20px rgba(58,123,213,0.45) !important;
-    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 20px rgba(58,123,213,0.45) !important; transform: translateY(-1px) !important;
 }
-
 /* ---- 输入框 ---- */
-[data-testid="stTextArea"] textarea,
-[data-testid="stTextInput"] input {
+[data-testid="stTextArea"] textarea, [data-testid="stTextInput"] input {
     background: rgba(255,255,255,0.75) !important;
-    border: 1px solid rgba(120,160,255,0.35) !important;
-    border-radius: 10px !important;
+    border: 1px solid rgba(120,160,255,0.35) !important; border-radius: 10px !important;
 }
-[data-testid="stTextArea"] textarea:focus,
-[data-testid="stTextInput"] input:focus {
-    border-color: #3a7bd5 !important;
-    box-shadow: 0 0 0 3px rgba(58,123,213,0.12) !important;
+[data-testid="stTextArea"] textarea:focus, [data-testid="stTextInput"] input:focus {
+    border-color: #3a7bd5 !important; box-shadow: 0 0 0 3px rgba(58,123,213,0.12) !important;
 }
-
 /* ---- Metric ---- */
 [data-testid="stMetric"] {
     background: rgba(255,255,255,0.65) !important;
-    border: 1px solid rgba(200,215,255,0.5) !important;
-    border-radius: 12px !important;
-    padding: 12px 16px !important;
-    box-shadow: 0 4px 16px rgba(60,100,200,0.06) !important;
+    border: 1px solid rgba(200,215,255,0.5) !important; border-radius: 12px !important;
+    padding: 12px 16px !important; box-shadow: 0 4px 16px rgba(60,100,200,0.06) !important;
 }
 [data-testid="stMetricValue"] { color: #2a4bbd !important; }
-
 /* ---- 数据表格 ---- */
 [data-testid="stDataFrame"] {
-    border-radius: 12px !important;
-    border: 1px solid rgba(200,215,255,0.4) !important;
-    box-shadow: 0 4px 16px rgba(60,100,200,0.07) !important;
-    overflow: hidden !important;
+    border-radius: 12px !important; border: 1px solid rgba(200,215,255,0.4) !important;
+    box-shadow: 0 4px 16px rgba(60,100,200,0.07) !important; overflow: hidden !important;
 }
-
 /* ---- Divider ---- */
 hr {
-    border: none !important;
-    height: 1px !important;
+    border: none !important; height: 1px !important;
     background: linear-gradient(90deg, transparent, rgba(58,123,213,0.3), transparent) !important;
     margin: 1rem 0 !important;
 }
-
 /* ---- 分区小标题 ---- */
 .section-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 1rem;
-    font-weight: 700;
-    color: #2a4bbd;
-    padding: 7px 14px;
-    background: rgba(58,123,213,0.07);
-    border-left: 3px solid #3a7bd5;
-    border-radius: 0 8px 8px 0;
-    margin: 14px 0 8px 0;
+    display: flex; align-items: center; gap: 8px; font-size: 1rem; font-weight: 700;
+    color: #2a4bbd; padding: 7px 14px; background: rgba(58,123,213,0.07);
+    border-left: 3px solid #3a7bd5; border-radius: 0 8px 8px 0; margin: 14px 0 8px 0;
 }
-
 /* ---- 状态标签 ---- */
 .abnormal-tag {
-    display: inline-block;
-    background: linear-gradient(135deg, #f45b69, #ff8b5e);
-    color: white;
-    padding: 2px 10px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 600;
+    display: inline-block; background: linear-gradient(135deg, #f45b69, #ff8b5e);
+    color: white; padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
 }
 .normal-tag {
-    display: inline-block;
-    background: linear-gradient(135deg, #00c6a2, #00e0b6);
-    color: white;
-    padding: 2px 10px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 600;
+    display: inline-block; background: linear-gradient(135deg, #00c6a2, #00e0b6);
+    color: white; padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
 }
-
 /* ---- 统计卡片 ---- */
 .metric-card {
-    background: rgba(255,255,255,0.7);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.9);
-    border-radius: 14px;
-    padding: 16px 20px;
-    text-align: center;
-    box-shadow: 0 4px 20px rgba(60,100,200,0.08);
-    position: relative;
-    overflow: hidden;
+    background: rgba(255,255,255,0.7); backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.9); border-radius: 14px; padding: 16px 20px;
+    text-align: center; box-shadow: 0 4px 20px rgba(60,100,200,0.08);
+    position: relative; overflow: hidden;
 }
 .metric-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #3a7bd5, #00d2ff);
-    border-radius: 14px 14px 0 0;
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, #3a7bd5, #00d2ff); border-radius: 14px 14px 0 0;
 }
 </style>
-""", unsafe_allow_html=True)
+"""
+
+_DARK_CSS = """
+<style>
+/* ---- 背景 ---- */
+[data-testid="stAppViewContainer"] {
+    background: linear-gradient(135deg, #0d1117 0%, #0f1724 50%, #0d1a14 100%) !important;
+}
+[data-testid="stHeader"] {
+    background: rgba(13,17,23,0.85) !important;
+    border-bottom: 1px solid rgba(99,140,255,0.15) !important;
+}
+[data-testid="stSidebar"] {
+    background: rgba(22,27,36,0.95) !important;
+    border-right: 1px solid rgba(99,140,255,0.15) !important;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.4) !important;
+}
+/* ---- 全局文字（base=light时覆盖）---- */
+.block-container, .block-container p,
+.block-container h1, .block-container h2,
+.block-container h3, .block-container h4,
+.block-container h5, .block-container h6 {
+    color: #c9d1d9 !important;
+}
+h1, h2, h3, h4, h5, h6 { color: #e6edf3 !important; }
+[data-testid="stMarkdownContainer"],
+[data-testid="stMarkdownContainer"] p,
+[data-testid="stMarkdownContainer"] li,
+[data-testid="stMarkdownContainer"] span { color: #c9d1d9 !important; }
+/* label：选择框/单选/复选/滑块 */
+label, [data-testid="stWidgetLabel"],
+[data-testid="stSlider"] label,
+[data-testid="stRadio"] label,
+[data-testid="stCheckbox"] label,
+[data-testid="stSelectbox"] label,
+[data-testid="stMultiSelect"] label,
+[data-testid="stFileUploader"] label { color: #c9d1d9 !important; }
+/* 侧边栏文字 */
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] .stMarkdown h2,
+[data-testid="stSidebar"] .stMarkdown h3 { color: #79a8ff !important; }
+/* ---- Expander ---- */
+[data-testid="stExpander"] {
+    background: rgba(22,27,36,0.85) !important;
+    border: 1px solid rgba(99,140,255,0.18) !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
+}
+[data-testid="stExpander"] summary,
+[data-testid="stExpander"] summary p { color: #79a8ff !important; }
+/* ---- 输入框 ---- */
+[data-testid="stTextArea"] textarea, [data-testid="stTextInput"] input {
+    background: rgba(30,37,48,0.9) !important;
+    border: 1px solid rgba(99,140,255,0.25) !important;
+    color: #c9d1d9 !important;
+}
+/* ---- Metric ---- */
+[data-testid="stMetric"] {
+    background: rgba(22,27,36,0.85) !important;
+    border: 1px solid rgba(99,140,255,0.2) !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
+}
+[data-testid="stMetricValue"] { color: #79a8ff !important; }
+[data-testid="stMetricLabel"] { color: #8b949e !important; }
+/* ---- 数据表格 ---- */
+[data-testid="stDataFrame"] {
+    border: 1px solid rgba(99,140,255,0.2) !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
+}
+/* ---- 分区标题/卡片 ---- */
+.section-header {
+    color: #79a8ff !important;
+    background: rgba(58,123,213,0.12) !important;
+    border-left-color: #4a90d9 !important;
+}
+.metric-card {
+    background: rgba(22,27,36,0.85) !important;
+    border: 1px solid rgba(99,140,255,0.2) !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.35) !important;
+}
+.header-subtitle { color: #8b949e !important; }
+/* ---- caption / help text ---- */
+[data-testid="stCaptionContainer"] p,
+small, .stCaption { color: #8b949e !important; }
+</style>
+"""
+
+st.markdown(_LIGHT_CSS, unsafe_allow_html=True)
+if st.session_state.get("dark_mode", False):
+    st.markdown(_DARK_CSS, unsafe_allow_html=True)
 
 
 # ============== 数据处理函数 ==============
@@ -1199,6 +1218,14 @@ def main():
                       "prev_label", "curr_label"]:
                 st.session_state.pop(k, None)
             st.rerun()
+
+        # 深色模式切换
+        _is_dark = st.session_state.get("dark_mode", False)
+        _theme_label = "☀️ 切换浅色模式" if _is_dark else "🌙 切换深色模式"
+        if st.button(_theme_label, use_container_width=True):
+            st.session_state["dark_mode"] = not _is_dark
+            st.rerun()
+
         st.divider()
         st.header("⚙️ 配置设置")
         
@@ -2135,11 +2162,41 @@ def main():
 
     def highlight_abnormal(row):
         if row['是否异常']:
-            return ['background-color: #ffcdd2'] * len(row)
+            return ['background-color: #5c1a1a; color: #ffb3b3'] * len(row)
         return [''] * len(row)
 
-    styled_df = comparison_df.style.apply(highlight_abnormal, axis=1)
-    st.dataframe(styled_df, use_container_width=True)
+    if st.session_state.get("dark_mode", False):
+        def _df_to_dark_html(df):
+            th_style = "background:#1c2333;color:#79a8ff;padding:8px 12px;text-align:left;border-bottom:2px solid #30363d;font-weight:600;font-size:0.88rem;"
+            td_style = "padding:7px 12px;border-bottom:1px solid #21262d;color:#c9d1d9;font-size:0.88rem;"
+            td_abn   = "padding:7px 12px;border-bottom:1px solid #21262d;color:#ffb3b3;font-size:0.88rem;"
+            row_norm = "background:#0d1117;"
+            row_abn  = "background:#5c1a1a;"
+            html = ['<div style="overflow-x:auto;border-radius:10px;border:1px solid #30363d;">',
+                    '<table style="width:100%;border-collapse:collapse;">',
+                    '<thead><tr>',
+                    f'<th style="{th_style}">#</th>']
+            for col in df.columns:
+                html.append(f'<th style="{th_style}">{col}</th>')
+            html.append('</tr></thead><tbody>')
+            for i, (_, row) in enumerate(df.iterrows()):
+                is_abn = bool(row.get('是否异常', False))
+                rs = row_abn if is_abn else row_norm
+                td = td_abn  if is_abn else td_style
+                html.append(f'<tr style="{rs}">')
+                html.append(f'<td style="{td}">{i}</td>')
+                for col in df.columns:
+                    val = row[col]
+                    if col == '是否异常':
+                        val = '✅' if val else '☐'
+                    html.append(f'<td style="{td}">{val}</td>')
+                html.append('</tr>')
+            html.append('</tbody></table></div>')
+            return ''.join(html)
+        st.markdown(_df_to_dark_html(comparison_df), unsafe_allow_html=True)
+    else:
+        styled_df = comparison_df.style.apply(highlight_abnormal, axis=1)
+        st.dataframe(styled_df, use_container_width=True)
 
     # 对比数据下载
     _dl1, _dl2 = st.columns(2)
@@ -2169,7 +2226,10 @@ def main():
     abnormal_df = comparison_df[comparison_df['是否异常'] == True]
     if not abnormal_df.empty:
         st.markdown("#### ⚠️ 异常数据")
-        st.dataframe(abnormal_df, use_container_width=True)
+        if st.session_state.get("dark_mode", False):
+            st.markdown(_df_to_dark_html(abnormal_df), unsafe_allow_html=True)
+        else:
+            st.dataframe(abnormal_df, use_container_width=True)
 
     # 可视化图表
     st.markdown("#### 📊 数据可视化")
