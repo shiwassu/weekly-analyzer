@@ -991,15 +991,60 @@ def show_monthly_dashboard(uid):
     non_date = [c for c in mcols if c != date_col]
 
     st.markdown("**指标列**")
+    if st.session_state.pop("_m_uncheck_selectall", False):
+        st.session_state["m_select_all"] = False
     m_select_all = st.checkbox("全选所有指标", value=True, key="m_select_all")
     if m_select_all:
         metric_cols = non_date
     else:
+        _m_tpl_default = st.session_state.pop("_m_tpl_load", non_date)
         metric_cols = st.multiselect(
             "选择指标列", non_date,
-            default=non_date,
+            default=[m for m in _m_tpl_default if m in non_date] or non_date,
             key="m_metric_cols"
         )
+
+    # 指标模板管理（月度看板）
+    with st.expander("📋 指标模板管理", expanded=False):
+        _mmt_list = db_auth.get_metric_templates(uid)
+        _mmt_names = [t["template_name"] for t in _mmt_list]
+        if _mmt_list:
+            st.markdown("**已保存的模板**")
+            _mmt_sel = st.selectbox("选择模板", _mmt_names, key="mmt_select")
+            _mmt_data = next((t for t in _mmt_list if t["template_name"] == _mmt_sel), None)
+            if _mmt_data:
+                _mmt_prev = _mmt_data["metrics"]
+                st.caption(f"包含 {len(_mmt_prev)} 个指标：{', '.join(_mmt_prev[:6])}{'…' if len(_mmt_prev)>6 else ''}")
+                st.caption(f"📅 更新于：{_mmt_data['updated_at']}")
+            _mmt_c1, _mmt_c2, _mmt_c3 = st.columns(3)
+            with _mmt_c1:
+                if st.button("📥 加载", use_container_width=True, key="mmt_load"):
+                    st.session_state["_m_uncheck_selectall"] = True
+                    st.session_state["_m_tpl_load"] = _mmt_data["metrics"]
+                    st.success(f"已加载「{_mmt_sel}」")
+                    st.rerun()
+            with _mmt_c2:
+                _mmt_rn = st.text_input("重命名为", key="mmt_rename_input", placeholder="输入新名称")
+                if st.button("✏️ 重命名", use_container_width=True, key="mmt_rename"):
+                    ok, msg = db_auth.rename_metric_template(uid, _mmt_sel, _mmt_rn)
+                    st.success(msg) if ok else st.error(msg)
+                    st.rerun()
+            with _mmt_c3:
+                if st.button("🗑️ 删除", use_container_width=True, key="mmt_del"):
+                    ok, msg = db_auth.delete_metric_template(uid, _mmt_sel)
+                    st.success(msg) if ok else st.error(msg)
+                    st.rerun()
+        else:
+            st.caption("暂无已保存的指标模板")
+        st.divider()
+        st.markdown("**保存当前选中指标为模板**")
+        _mmt_save_name = st.text_input("模板名称", key="mmt_save_name", placeholder="例：月度核心指标")
+        if st.button("💾 保存当前指标", use_container_width=True, type="primary", key="mmt_save"):
+            ok, msg = db_auth.save_metric_template(uid, _mmt_save_name, list(metric_cols))
+            st.success(msg) if ok else st.error(msg)
+            if ok:
+                st.rerun()
+
     if not metric_cols:
         st.warning("请至少选择一个指标列"); return
 
@@ -1663,11 +1708,55 @@ def main():
                     
                     # 在checkbox渲染后显示实际选中数量
                     st.caption(f"已选择 {len(selected)}/{total_metrics} 个指标")
-            
+
+            # 指标模板管理（Mode 2）
+            with st.expander("📋 指标模板管理", expanded=False):
+                _mt2_list = db_auth.get_metric_templates(uid)
+                _mt2_names = [t["template_name"] for t in _mt2_list]
+                if _mt2_list:
+                    st.markdown("**已保存的模板**")
+                    _mt2_sel = st.selectbox("选择模板", _mt2_names, key="mt2_select")
+                    _mt2_data = next((t for t in _mt2_list if t["template_name"] == _mt2_sel), None)
+                    if _mt2_data:
+                        _m2_prev = _mt2_data["metrics"]
+                        st.caption(f"包含 {len(_m2_prev)} 个指标：{', '.join(_m2_prev[:6])}{'…' if len(_m2_prev)>6 else ''}")
+                        st.caption(f"📅 更新于：{_mt2_data['updated_at']}")
+                    _mt2_c1, _mt2_c2, _mt2_c3 = st.columns(3)
+                    with _mt2_c1:
+                        if st.button("📥 加载", use_container_width=True, key="mt2_load"):
+                            _loaded = set(_mt2_data["metrics"])
+                            st.session_state['metric_sel_states'] = {m: (m in _loaded) for m in available_metrics}
+                            st.session_state['select_all_state'] = False
+                            st.session_state['checkbox_version'] += 1
+                            st.success(f"已加载「{_mt2_sel}」")
+                            st.rerun()
+                    with _mt2_c2:
+                        _mt2_rn = st.text_input("重命名为", key="mt2_rename_input", placeholder="输入新名称")
+                        if st.button("✏️ 重命名", use_container_width=True, key="mt2_rename"):
+                            ok, msg = db_auth.rename_metric_template(uid, _mt2_sel, _mt2_rn)
+                            st.success(msg) if ok else st.error(msg)
+                            st.rerun()
+                    with _mt2_c3:
+                        if st.button("🗑️ 删除", use_container_width=True, key="mt2_del"):
+                            ok, msg = db_auth.delete_metric_template(uid, _mt2_sel)
+                            st.success(msg) if ok else st.error(msg)
+                            st.rerun()
+                else:
+                    st.caption("暂无已保存的指标模板")
+                st.divider()
+                st.markdown("**保存当前选中指标为模板**")
+                _mt2_save_name = st.text_input("模板名称", key="mt2_save_name", placeholder="例：核心业务指标")
+                if st.button("💾 保存当前指标", use_container_width=True, type="primary", key="mt2_save"):
+                    _cur2 = [m for m in available_metrics if st.session_state['metric_sel_states'].get(m, True)]
+                    ok, msg = db_auth.save_metric_template(uid, _mt2_save_name, _cur2)
+                    st.success(msg) if ok else st.error(msg)
+                    if ok:
+                        st.rerun()
+
             if not metric_cols_select:
                 st.warning("请至少选择一个指标列")
                 return
-            
+
             # 解析日期获取范围（支持带星期标注的日期如 2026-01-11(日)）
             try:
                 cleaned_df[date_col] = cleaned_df[date_col].apply(parse_date_with_weekday)
@@ -1676,22 +1765,22 @@ def main():
             except:
                 st.error("日期列解析失败，请检查日期格式")
                 return
-            
+
             st.markdown("##### 📅 日期范围选择")
-            
+
             col1, col2 = st.columns(2)
             with col1:
                 st.markdown("**对比期（如上周）**")
                 prev_start = st.date_input("开始日期", value=min_date, key="prev_start")
                 prev_end = st.date_input("结束日期", value=min_date + timedelta(days=6), key="prev_end")
                 prev_label = st.text_input("对比期名称", value="上周均值", key="prev_label_2")
-            
+
             with col2:
                 st.markdown("**当前期（如本周）**")
                 curr_start = st.date_input("开始日期", value=max_date - timedelta(days=6), key="curr_start")
                 curr_end = st.date_input("结束日期", value=max_date, key="curr_end")
                 curr_label = st.text_input("当前期名称", value="本周均值", key="curr_label_2")
-            
+
             # 计算两个周期的均值（传入原始数据以检测格式）
             prev_avg, prev_records, format_info, prev_range_days = calculate_daily_average(
                 cleaned_df, date_col, metric_cols_select, prev_start, prev_end, original_df
@@ -1699,38 +1788,33 @@ def main():
             curr_avg, curr_records, _, curr_range_days = calculate_daily_average(
                 cleaned_df, date_col, metric_cols_select, curr_start, curr_end, original_df
             )
-            
+
             if prev_avg is None or curr_avg is None:
                 st.error("所选日期范围内没有数据，请调整日期范围")
                 return
-            
-            # 显示日期范围天数和实际数据记录数
+
             st.info(f"📊 对比期: {prev_start} ~ {prev_end} ({prev_range_days}天, {prev_records}条记录) | 当前期: {curr_start} ~ {curr_end} ({curr_range_days}天, {curr_records}条记录)")
-            
+
             # 构建对比数据（保持原始格式）
             process_data = []
             for col_name in metric_cols_select:
                 prev_val = prev_avg.get(col_name, 0)
                 curr_val = curr_avg.get(col_name, 0)
-                
-                # 获取该列的格式信息
                 col_format = format_info.get(col_name, {'is_percent': False, 'decimal_places': 0})
-                
                 process_data.append({
                     '指标': col_name,
                     prev_label: prev_val,
                     curr_label: curr_val,
-                    '_format': col_format  # 存储格式信息
+                    '_format': col_format
                 })
             process_df = pd.DataFrame(process_data)
-            
-            # 存储格式信息到session
+
             st.session_state['format_info'] = format_info
-            
+
             metric_col = '指标'
             prev_col = prev_label
             curr_col = curr_label
-            
+
             # 显示趋势图
             st.markdown("##### 📈 数据趋势图")
             trend_metrics = st.multiselect(
@@ -1739,7 +1823,7 @@ def main():
                 default=metric_cols_select[:3] if len(metric_cols_select) >= 3 else metric_cols_select,
                 key="trend_metrics"
             )
-            
+
             if trend_metrics:
                 trend_fig = create_trend_chart(cleaned_df, date_col, trend_metrics, "每日数据趋势")
                 st.plotly_chart(trend_fig, use_container_width=True)
@@ -1800,11 +1884,55 @@ def main():
                         metric_cols_select = selected_m3
                     
                     st.caption(f"已选择 {len(selected_m3)}/{total_metrics} 个指标")
-            
+
+            # 指标模板管理（Mode 3）
+            with st.expander("📋 指标模板管理", expanded=False):
+                _mt3_list = db_auth.get_metric_templates(uid)
+                _mt3_names = [t["template_name"] for t in _mt3_list]
+                if _mt3_list:
+                    st.markdown("**已保存的模板**")
+                    _mt3_sel = st.selectbox("选择模板", _mt3_names, key="mt3_select")
+                    _mt3_data = next((t for t in _mt3_list if t["template_name"] == _mt3_sel), None)
+                    if _mt3_data:
+                        _m3_prev = _mt3_data["metrics"]
+                        st.caption(f"包含 {len(_m3_prev)} 个指标：{', '.join(_m3_prev[:6])}{'…' if len(_m3_prev)>6 else ''}")
+                        st.caption(f"📅 更新于：{_mt3_data['updated_at']}")
+                    _mt3_c1, _mt3_c2, _mt3_c3 = st.columns(3)
+                    with _mt3_c1:
+                        if st.button("📥 加载", use_container_width=True, key="mt3_load"):
+                            _loaded3 = set(_mt3_data["metrics"])
+                            st.session_state['metric_sel_states_m3'] = {m: (m in _loaded3) for m in available_metrics}
+                            st.session_state['select_all_state_m3'] = False
+                            st.session_state['checkbox_version_m3'] += 1
+                            st.success(f"已加载「{_mt3_sel}」")
+                            st.rerun()
+                    with _mt3_c2:
+                        _mt3_rn = st.text_input("重命名为", key="mt3_rename_input", placeholder="输入新名称")
+                        if st.button("✏️ 重命名", use_container_width=True, key="mt3_rename"):
+                            ok, msg = db_auth.rename_metric_template(uid, _mt3_sel, _mt3_rn)
+                            st.success(msg) if ok else st.error(msg)
+                            st.rerun()
+                    with _mt3_c3:
+                        if st.button("🗑️ 删除", use_container_width=True, key="mt3_del"):
+                            ok, msg = db_auth.delete_metric_template(uid, _mt3_sel)
+                            st.success(msg) if ok else st.error(msg)
+                            st.rerun()
+                else:
+                    st.caption("暂无已保存的指标模板")
+                st.divider()
+                st.markdown("**保存当前选中指标为模板**")
+                _mt3_save_name = st.text_input("模板名称", key="mt3_save_name", placeholder="例：核心业务指标")
+                if st.button("💾 保存当前指标", use_container_width=True, type="primary", key="mt3_save"):
+                    _cur3 = [m for m in available_metrics if st.session_state.get('metric_sel_states_m3', {}).get(m, True)]
+                    ok, msg = db_auth.save_metric_template(uid, _mt3_save_name, _cur3)
+                    st.success(msg) if ok else st.error(msg)
+                    if ok:
+                        st.rerun()
+
             if not metric_cols_select:
                 st.warning("请至少选择一个指标列")
                 return
-            
+
             # 解析日期
             try:
                 cleaned_df[date_col] = cleaned_df[date_col].apply(parse_date_with_weekday)
@@ -1813,45 +1941,45 @@ def main():
             except:
                 st.error("日期列解析失败，请检查日期格式")
                 return
-            
+
             st.markdown("##### 📅 选择对比日期")
-            
+
             col1, col2 = st.columns(2)
             with col1:
                 st.markdown("**日期1（对比基准）**")
                 if len(available_dates_str) >= 2:
-                    day1_idx = st.selectbox("选择日期1", range(len(available_dates_str)), 
+                    day1_idx = st.selectbox("选择日期1", range(len(available_dates_str)),
                                            format_func=lambda x: available_dates_str[x],
                                            index=len(available_dates_str)-2,
                                            key="day1_select")
                 else:
-                    day1_idx = st.selectbox("选择日期1", range(len(available_dates_str)), 
+                    day1_idx = st.selectbox("选择日期1", range(len(available_dates_str)),
                                            format_func=lambda x: available_dates_str[x],
                                            index=0,
                                            key="day1_select")
                 prev_label = st.text_input("日期1名称", value=available_dates_str[day1_idx], key="day1_label")
-            
+
             with col2:
                 st.markdown("**日期2（当前对比）**")
-                day2_idx = st.selectbox("选择日期2", range(len(available_dates_str)), 
+                day2_idx = st.selectbox("选择日期2", range(len(available_dates_str)),
                                        format_func=lambda x: available_dates_str[x],
                                        index=len(available_dates_str)-1,
                                        key="day2_select")
                 curr_label = st.text_input("日期2名称", value=available_dates_str[day2_idx], key="day2_label")
-            
+
             # 获取两天的数据
             day1_date = available_dates[day1_idx]
             day2_date = available_dates[day2_idx]
-            
+
             day1_data = cleaned_df[cleaned_df[date_col] == day1_date]
             day2_data = cleaned_df[cleaned_df[date_col] == day2_date]
-            
+
             if day1_data.empty or day2_data.empty:
                 st.error("所选日期没有数据，请重新选择")
                 return
-            
+
             st.info(f"📊 对比: {available_dates_str[day1_idx]} vs {available_dates_str[day2_idx]}")
-            
+
             # 检测原始数据格式
             format_info = {}
             for col_name in metric_cols_select:
@@ -1872,15 +2000,15 @@ def main():
                     format_info[col_name] = {'is_percent': is_percent, 'decimal_places': decimal_places}
                 else:
                     format_info[col_name] = {'is_percent': False, 'decimal_places': 0}
-            
+
             # 构建对比数据
             process_data = []
             for col_name in metric_cols_select:
                 prev_val = day1_data[col_name].iloc[0] if col_name in day1_data.columns else 0
                 curr_val = day2_data[col_name].iloc[0] if col_name in day2_data.columns else 0
-                
+
                 col_format = format_info.get(col_name, {'is_percent': False, 'decimal_places': 0})
-                
+
                 process_data.append({
                     '指标': col_name,
                     prev_label: prev_val,
@@ -1888,13 +2016,13 @@ def main():
                     '_format': col_format
                 })
             process_df = pd.DataFrame(process_data)
-            
+
             st.session_state['format_info'] = format_info
-            
+
             metric_col = '指标'
             prev_col = prev_label
             curr_col = curr_label
-            
+
             # 显示趋势图
             st.markdown("##### 📈 数据趋势图")
             trend_metrics = st.multiselect(
@@ -1903,7 +2031,7 @@ def main():
                 default=metric_cols_select[:3] if len(metric_cols_select) >= 3 else metric_cols_select,
                 key="trend_metrics_m3"
             )
-            
+
             if trend_metrics:
                 trend_fig = create_trend_chart(cleaned_df, date_col, trend_metrics, "每日数据趋势")
                 st.plotly_chart(trend_fig, use_container_width=True)
@@ -1941,22 +2069,67 @@ def main():
         
         # 选择要分析的指标（带全选功能）
         st.markdown("##### 📋 选择分析指标")
+        if st.session_state.pop("_mt1_uncheck", False):
+            st.session_state["select_all_metrics"] = False
         select_all = st.checkbox("全选所有指标", value=True, key="select_all_metrics")
-        
+
         if select_all:
             selected_metrics = all_metrics
         else:
+            _m1_default = st.session_state.pop("_m1_tpl_load", all_metrics)
             selected_metrics = st.multiselect(
                 "选择要分析的指标",
                 all_metrics,
-                default=all_metrics,
+                default=[m for m in _m1_default if m in all_metrics] or all_metrics,
+                key="metric_multiselect",
                 help="选择需要进行分析的指标"
             )
-        
+
+        # 指标模板管理（Mode 1）
+        with st.expander("📋 指标模板管理", expanded=False):
+            _mt1_list = db_auth.get_metric_templates(uid)
+            _mt1_names = [t["template_name"] for t in _mt1_list]
+            if _mt1_list:
+                st.markdown("**已保存的模板**")
+                _mt1_sel = st.selectbox("选择模板", _mt1_names, key="mt1_select")
+                _mt1_data = next((t for t in _mt1_list if t["template_name"] == _mt1_sel), None)
+                if _mt1_data:
+                    _m1_prev = _mt1_data["metrics"]
+                    st.caption(f"包含 {len(_m1_prev)} 个指标：{', '.join(_m1_prev[:6])}{'…' if len(_m1_prev)>6 else ''}")
+                    st.caption(f"📅 更新于：{_mt1_data['updated_at']}")
+                _mt1_c1, _mt1_c2, _mt1_c3 = st.columns(3)
+                with _mt1_c1:
+                    if st.button("📥 加载", use_container_width=True, key="mt1_load"):
+                        st.session_state["_mt1_uncheck"] = True
+                        st.session_state["_m1_tpl_load"] = _mt1_data["metrics"]
+                        st.success(f"已加载「{_mt1_sel}」")
+                        st.rerun()
+                with _mt1_c2:
+                    _mt1_rn = st.text_input("重命名为", key="mt1_rename_input", placeholder="输入新名称")
+                    if st.button("✏️ 重命名", use_container_width=True, key="mt1_rename"):
+                        ok, msg = db_auth.rename_metric_template(uid, _mt1_sel, _mt1_rn)
+                        st.success(msg) if ok else st.error(msg)
+                        st.rerun()
+                with _mt1_c3:
+                    if st.button("🗑️ 删除", use_container_width=True, key="mt1_del"):
+                        ok, msg = db_auth.delete_metric_template(uid, _mt1_sel)
+                        st.success(msg) if ok else st.error(msg)
+                        st.rerun()
+            else:
+                st.caption("暂无已保存的指标模板")
+            st.divider()
+            st.markdown("**保存当前选中指标为模板**")
+            _mt1_save_name = st.text_input("模板名称", key="mt1_save_name", placeholder="例：核心业务指标")
+            if st.button("💾 保存当前指标", use_container_width=True, type="primary", key="mt1_save"):
+                ok, msg = db_auth.save_metric_template(uid, _mt1_save_name, list(selected_metrics))
+                st.success(msg) if ok else st.error(msg)
+                if ok:
+                    st.rerun()
+
         if not selected_metrics:
             st.warning("请至少选择一个指标进行分析")
             return
-        
+
         # 更新 metrics 为选中的指标
         metrics = selected_metrics
         

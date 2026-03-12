@@ -35,6 +35,16 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users(id),
             UNIQUE(user_id, profile_name)
         );
+
+        CREATE TABLE IF NOT EXISTS metric_templates (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id       INTEGER NOT NULL,
+            template_name TEXT    NOT NULL,
+            metrics       TEXT    NOT NULL,
+            updated_at    TEXT    DEFAULT (datetime('now','localtime')),
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            UNIQUE(user_id, template_name)
+        );
     """)
     con.commit()
     con.close()
@@ -161,6 +171,80 @@ def delete_profile(user_id: int, profile_name: str) -> tuple[bool, str]:
     if affected == 0:
         return False, "模板不存在"
     return True, f"已删除模板「{profile_name}」"
+
+
+# ──────────────────────────────────────────────
+# 指标模板 CRUD
+# ──────────────────────────────────────────────
+def get_metric_templates(user_id: int) -> list[dict]:
+    """返回 [{id, template_name, metrics(list), updated_at}]"""
+    con = sqlite3.connect(DB_PATH)
+    rows = con.execute(
+        "SELECT id, template_name, metrics, updated_at FROM metric_templates "
+        "WHERE user_id = ? ORDER BY updated_at DESC",
+        (user_id,)
+    ).fetchall()
+    con.close()
+    return [
+        {"id": r[0], "template_name": r[1],
+         "metrics": json.loads(r[2]), "updated_at": r[3]}
+        for r in rows
+    ]
+
+
+def save_metric_template(user_id: int, template_name: str, metrics: list) -> tuple[bool, str]:
+    """新建或覆盖同名指标模板"""
+    if not template_name.strip():
+        return False, "模板名不能为空"
+    if not metrics:
+        return False, "指标列表不能为空"
+    payload = json.dumps(metrics, ensure_ascii=False)
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    try:
+        con = sqlite3.connect(DB_PATH)
+        con.execute(
+            """INSERT INTO metric_templates (user_id, template_name, metrics, updated_at)
+               VALUES (?, ?, ?, ?)
+               ON CONFLICT(user_id, template_name)
+               DO UPDATE SET metrics=excluded.metrics, updated_at=excluded.updated_at""",
+            (user_id, template_name.strip(), payload, now)
+        )
+        con.commit()
+        con.close()
+        return True, f"已保存指标模板「{template_name.strip()}」"
+    except Exception as e:
+        return False, str(e)
+
+
+def rename_metric_template(user_id: int, old_name: str, new_name: str) -> tuple[bool, str]:
+    if not new_name.strip():
+        return False, "新名称不能为空"
+    try:
+        con = sqlite3.connect(DB_PATH)
+        affected = con.execute(
+            "UPDATE metric_templates SET template_name=? WHERE user_id=? AND template_name=?",
+            (new_name.strip(), user_id, old_name)
+        ).rowcount
+        con.commit()
+        con.close()
+        if affected == 0:
+            return False, "模板不存在"
+        return True, f"已重命名为「{new_name.strip()}」"
+    except sqlite3.IntegrityError:
+        return False, "新名称已存在"
+
+
+def delete_metric_template(user_id: int, template_name: str) -> tuple[bool, str]:
+    con = sqlite3.connect(DB_PATH)
+    affected = con.execute(
+        "DELETE FROM metric_templates WHERE user_id=? AND template_name=?",
+        (user_id, template_name)
+    ).rowcount
+    con.commit()
+    con.close()
+    if affected == 0:
+        return False, "模板不存在"
+    return True, f"已删除指标模板「{template_name}」"
 
 
 def find_matching_profile(user_id: int, filename: str) -> dict | None:
