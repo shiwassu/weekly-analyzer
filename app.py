@@ -2024,6 +2024,9 @@ def main():
                 curr_val = day2_data[col_name].iloc[0] if col_name in day2_data.columns else 0
 
                 col_format = format_info.get(col_name, {'is_percent': False, 'decimal_places': 0})
+                # 与Mode2保持一致：百分比值乘以100，使差值和格式化输出正确
+                prev_val = format_value(prev_val, col_format)
+                curr_val = format_value(curr_val, col_format)
 
                 process_data.append({
                     '指标': col_name,
@@ -2248,6 +2251,34 @@ def main():
                     # Mode1列名作为指标时，isin匹配不到行，直接用全量数据
                     _cand = process_df[process_df[metric_col].isin(metrics)]
                     filtered_df = (_cand if not _cand.empty else process_df).copy()
+
+                    # Mode1：按行检测百分比格式并将小数值还原为百分比（0.0523→5.23）
+                    if data_mode == "模式1: 直接对比（已有周均数据）":
+                        m1_fmt = {}
+                        if metric_col in original_df.columns:
+                            for _, orig_row in original_df.iterrows():
+                                m_name = str(orig_row.get(metric_col, '')).strip()
+                                if not m_name:
+                                    continue
+                                fmt = {'is_percent': False, 'decimal_places': 0}
+                                for chk_col in [prev_col, curr_col]:
+                                    raw_v = str(orig_row.get(chk_col, '')).strip()
+                                    if '%' in raw_v:
+                                        fmt['is_percent'] = True
+                                        num_p = raw_v.replace('%', '').replace(',', '')
+                                        if '.' in num_p:
+                                            fmt['decimal_places'] = len(num_p.split('.')[-1])
+                                        break
+                                m1_fmt[m_name] = fmt
+                                if fmt['is_percent']:
+                                    _mask = filtered_df[metric_col].astype(str).str.strip() == m_name
+                                    for _c in [prev_col, curr_col]:
+                                        if _c in filtered_df.columns:
+                                            filtered_df.loc[_mask, _c] = (
+                                                pd.to_numeric(filtered_df.loc[_mask, _c], errors='coerce') * 100
+                                            )
+                        if m1_fmt:
+                            current_format_info = m1_fmt
                     
                     # 计算对比
                     comparison_df = calculate_comparison(
