@@ -361,13 +361,29 @@ def calculate_comparison(df, metric_col, prev_col, curr_col, thresholds, prev_la
     result['_prev_raw'] = prev_values  # 保留原始数值用于计算
     
     def calc_rate(row):
-        if row['_prev_raw'] != 0:
-            return round((row['_diff_raw'] / row['_prev_raw']) * 100, 2)
-        return 0
+        try:
+            prev = row['_prev_raw']
+            diff = row['_diff_raw']
+            if pd.notna(prev) and prev != 0:
+                rate = (diff / prev) * 100
+                if pd.isna(rate) or not np.isfinite(rate):
+                    return 0.0
+                return round(float(rate), 2)
+        except Exception:
+            pass
+        return 0.0
     
     result['_rate_raw'] = result.apply(calc_rate, axis=1)  # 保留原始数值
-    # 格式化涨跌率显示正负号
-    result['涨跌率(%)'] = result['_rate_raw'].apply(lambda x: f"+{x:.2f}%" if x > 0 else f"{x:.2f}%")
+    # 格式化涨跌率显示正负号（始终保证百分比格式）
+    def _fmt_rate(x):
+        try:
+            v = float(x)
+            if not np.isfinite(v):
+                return "0.00%"
+            return f"+{v:.2f}%" if v > 0 else f"{v:.2f}%"
+        except Exception:
+            return "0.00%"
+    result['涨跌率(%)'] = result['_rate_raw'].apply(_fmt_rate)
     
     # 根据自定义阈值判断异常
     def check_abnormal(row):
@@ -2224,27 +2240,33 @@ def main():
         # 执行分析
         if st.button("🚀 开始分析", type="primary", use_container_width=True):
             with st.spinner("正在分析数据..."):
-                # 获取格式信息
-                current_format_info = st.session_state.get('format_info', {})
-                
-                # 筛选选中的指标
-                filtered_df = process_df[process_df[metric_col].isin(metrics)].copy()
-                
-                # 计算对比
-                comparison_df = calculate_comparison(
-                    filtered_df, metric_col, prev_col, curr_col, thresholds,
-                    prev_label=prev_label, curr_label=curr_label,
-                    format_info=current_format_info
-                )
-                
-                # 存储到session
-                st.session_state['comparison_df'] = comparison_df
-                st.session_state['original_df'] = original_df
-                st.session_state['cleaned_df'] = cleaned_df
-                st.session_state['process_df'] = process_df
-                st.session_state['thresholds'] = thresholds
-                st.session_state['prev_label'] = prev_label
-                st.session_state['curr_label'] = curr_label
+                try:
+                    # 获取格式信息
+                    current_format_info = st.session_state.get('format_info', {})
+                    
+                    # 筛选选中的指标
+                    # Mode1列名作为指标时，isin匹配不到行，直接用全量数据
+                    _cand = process_df[process_df[metric_col].isin(metrics)]
+                    filtered_df = (_cand if not _cand.empty else process_df).copy()
+                    
+                    # 计算对比
+                    comparison_df = calculate_comparison(
+                        filtered_df, metric_col, prev_col, curr_col, thresholds,
+                        prev_label=prev_label, curr_label=curr_label,
+                        format_info=current_format_info
+                    )
+                    
+                    # 存储到session
+                    st.session_state['comparison_df'] = comparison_df
+                    st.session_state['original_df'] = original_df
+                    st.session_state['cleaned_df'] = cleaned_df
+                    st.session_state['process_df'] = process_df
+                    st.session_state['thresholds'] = thresholds
+                    st.session_state['prev_label'] = prev_label
+                    st.session_state['curr_label'] = curr_label
+                except Exception as _e:
+                    st.error(f"分析出错：{_e}")
+                    st.stop()
                 
             st.success("✅ 数据分析完成!")
         
