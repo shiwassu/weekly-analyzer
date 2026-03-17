@@ -8,7 +8,12 @@ import json
 import secrets
 from datetime import datetime
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "app_data.db")
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = (
+    os.path.join(_script_dir, "app_data.db")
+    if os.access(_script_dir, os.W_OK)
+    else os.path.join(os.path.expanduser("~"), "app_data.db")
+)
 
 
 # ──────────────────────────────────────────────

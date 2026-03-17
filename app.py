@@ -36,7 +36,12 @@ st.set_page_config(
 )
 
 # 初始化数据库（应用启动时执行一次）
-db_auth.init_db()
+try:
+    db_auth.init_db()
+except Exception as _db_init_err:
+    import streamlit as st
+    st.error(f"数据库初始化失败（路径：{db_auth.DB_PATH}）：{_db_init_err}")
+    st.stop()
 
 # ============== 样式 ==============
 _LIGHT_CSS = """
