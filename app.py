@@ -678,10 +678,18 @@ def generate_ai_analysis(comparison_df, original_df, thresholds, api_key, base_u
 def generate_rule_based_analysis(comparison_df, thresholds):
     """基于规则的分析（无AI时使用）"""
     report = []
-    
+
+    def _parse_rate(v):
+        try:
+            return float(str(v).replace('%', '').replace('+', ''))
+        except Exception:
+            return 0.0
+
+    rate_series = comparison_df['涨跌率(%)'].apply(_parse_rate)
+
     # 1. 整体趋势
     report.append("### 1. 整体趋势分析\n")
-    avg_change = comparison_df['涨跌率(%)'].mean()
+    avg_change = rate_series.mean()
     if avg_change > 5:
         report.append(f"本周整体呈**上升趋势**，平均涨幅 {avg_change:.1f}%。\n")
     elif avg_change < -5:
@@ -697,7 +705,7 @@ def generate_rule_based_analysis(comparison_df, thresholds):
     else:
         for _, row in abnormal.iterrows():
             metric = row['指标']
-            rate = row['涨跌率(%)']
+            rate = _parse_rate(row['涨跌率(%)'])
             threshold = thresholds.get(metric, thresholds.get('__default__', 15))
             direction = "上涨" if rate > 0 else "下降"
             
@@ -2001,24 +2009,11 @@ def main():
 
             st.info(f"📊 对比: {available_dates_str[day1_idx]} vs {available_dates_str[day2_idx]}")
 
-            # 检测原始数据格式
+            # 检测原始数据格式（与Mode2保持一致，使用detect_format）
             format_info = {}
             for col_name in metric_cols_select:
                 if col_name in original_df.columns:
-                    sample_values = original_df[col_name].dropna().head(10)
-                    is_percent = False
-                    decimal_places = 0
-                    for val in sample_values:
-                        if isinstance(val, str) and '%' in val:
-                            is_percent = True
-                            try:
-                                num_str = val.replace('%', '').replace(',', '').strip()
-                                if '.' in num_str:
-                                    decimal_places = max(decimal_places, len(num_str.split('.')[-1]))
-                            except:
-                                pass
-                            break
-                    format_info[col_name] = {'is_percent': is_percent, 'decimal_places': decimal_places}
+                    format_info[col_name] = detect_format(original_df[col_name])
                 else:
                     format_info[col_name] = {'is_percent': False, 'decimal_places': 0}
 
