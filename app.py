@@ -1207,8 +1207,13 @@ def show_monthly_dashboard(uid):
     # ── 原始数据预览 ──
     st.markdown("---")
     st.markdown("##### 🗂 原始数据预览")
-    preview_n = st.slider("显示行数", 10, min(200, len(fdf)), min(50, len(fdf)),
-                          step=10, key="m_preview_n")
+    _prev_max = max(10, min(200, len(fdf)))
+    _prev_def = max(10, min(50, len(fdf)))
+    if _prev_max > 10:
+        preview_n = st.slider("显示行数", 10, _prev_max, _prev_def,
+                              step=10, key="m_preview_n")
+    else:
+        preview_n = _prev_max
     st.dataframe(
         orig_fdf.head(preview_n).reset_index(drop=True),
         use_container_width=True, hide_index=True
